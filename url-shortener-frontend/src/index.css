@@ -1,0 +1,13 @@
+/* src/index.css */
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8fafc; /* Forces light gray background edge-to-edge */
+  color-scheme: light;
+}
