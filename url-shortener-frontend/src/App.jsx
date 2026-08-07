@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Link2, Copy, Check, BarChart2, ExternalLink, Zap } from 'lucide-react';
+import { Link2, Copy, Check, BarChart2, ExternalLink, Zap, Clock, Hash } from 'lucide-react';
 import './App.css';
 import './index.css';
 
@@ -19,26 +19,33 @@ export default function App() {
   const [statsResult, setStatsResult] = useState(null);
   const [statsError, setStatsError] = useState('');
 
+  // TTL & Limit integration
+  const [expiresInHours, setExpiresInHours] = useState('');
+  const [maxClicks, setMaxClicks] = useState('');
+
   const handleShorten = async (e) => {
     e.preventDefault();
+
+    // 1. Validation
+    if (customCode.includes('/') || customCode.includes('http')) {
+      setError('Custom alias should only be a simple slug (e.g., "my-link"), without "http" or slashes.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setResult(null);
 
-    // Prevent full URLs in custom code
-    if (customCode.includes('/') || customCode.includes('http')) {
-      setError('Custom alias should only be a simple slug (e.g., "my-link"), without "http" or slashes.');
-      setLoading(false);
-      return;
-    }
-
     try {
+      // 2. Build payload including TTL & Click limit
       const payload = { originalUrl };
       if (customCode.trim()) payload.customCode = customCode.trim();
+      if (expiresInHours) payload.expiresInHours = Number(expiresInHours);
+      if (maxClicks) payload.maxClicks = Number(maxClicks);
 
+      // 3. Single API request
       const response = await axios.post(`${API_BASE_URL}/shorten`, payload);
       setResult(response.data);
-      // Inputs stays populated for reviewing what was submitted
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
@@ -50,6 +57,8 @@ export default function App() {
   const handleReset = () => {
     setOriginalUrl('');
     setCustomCode('');
+    setExpiresInHours('');
+    setMaxClicks('');
     setResult(null);
     setError('');
   };
@@ -82,12 +91,11 @@ export default function App() {
   return (
     <div className="container">
       <header className="header">
-
         <div className="logo-row">
           <Link2 size={30} color="#f5a623" />
           <h1 className="title">SnapLink</h1>
         </div>
-        <p className="subtitle"> plug a long link into a short jack, then trace its clicks</p>
+        <p className="subtitle">plug a long link into a short jack, then trace its clicks</p>
       </header>
 
       <main className="main-content">
@@ -96,7 +104,7 @@ export default function App() {
           <span className="screw-tl" />
           <span className="screw-br" />
           <h2 className="card-title">
-            <Zap size={16} className="module-icon" /> &mdash; Shorten or Create Alias  &mdash;
+            <Zap size={16} className="module-icon" /> &mdash; Shorten or Create Alias &mdash;
           </h2>
           <form onSubmit={handleShorten} className="form-stack">
             <div className="input-group">
@@ -108,7 +116,7 @@ export default function App() {
                 value={originalUrl}
                 onChange={(e) => {
                   setOriginalUrl(e.target.value);
-                  if (result) setResult(null); // Optional: clears old result card when typing a new link
+                  if (result) setResult(null);
                 }}
                 className="styled-input"
               />
@@ -125,17 +133,44 @@ export default function App() {
               />
             </div>
 
+            {/* Added Inputs for Link Expiration & Max Clicks */}
+            <div className="input-row" style={{ display: 'flex', gap: '1rem' }}>
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label"><Clock size={12} /> Expires In (Hours)</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 24 (Optional)"
+                  value={expiresInHours}
+                  onChange={(e) => setExpiresInHours(e.target.value)}
+                  className="styled-input"
+                />
+              </div>
+
+              <div className="input-group" style={{ flex: 1 }}>
+                <label className="input-label"><Hash size={12} /> Max Clicks</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 100 (Optional)"
+                  value={maxClicks}
+                  onChange={(e) => setMaxClicks(e.target.value)}
+                  className="styled-input"
+                />
+              </div>
+            </div>
+
             <div className="button-group">
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading ? 'Patching...' : 'Patch It ▸'}
               </button>
-              
-              {(originalUrl || customCode || result || error) && (
+
+              {(originalUrl || customCode || expiresInHours || maxClicks || result || error) && (
                 <button type="button" onClick={handleReset} className="btn-clear">
                   Clear
                 </button>
               )}
-          </div>
+            </div>
           </form>
 
           {error && <div className="error-box">{error}</div>}
@@ -174,9 +209,9 @@ export default function App() {
           <span className="screw-tl" />
           <span className="screw-br" />
           <h2 className="card-title">
-            <BarChart2 size={16} className="module-icon" /> &mdash; Trace &mdash; 
+            <BarChart2 size={16} className="module-icon" /> &mdash; Trace &mdash;
           </h2>
-          
+
           <form onSubmit={handleFetchStats} className="form-stack">
             <div className="input-group">
               <input
@@ -186,7 +221,7 @@ export default function App() {
                 value={statsCode}
                 onChange={(e) => {
                   setStatsCode(e.target.value);
-                  if (statsResult) setStatsResult(null); // Clears previous result when typing new code
+                  if (statsResult) setStatsResult(null);
                 }}
                 className="styled-input"
               />
@@ -196,7 +231,7 @@ export default function App() {
               <button type="submit" className="btn-secondary">
                 Query ▸
               </button>
-              
+
               {(statsCode || statsResult || statsError) && (
                 <button type="button" onClick={handleResetStats} className="btn-clear">
                   Clear
@@ -222,6 +257,17 @@ export default function App() {
                     ? new Date(statsResult.date || statsResult.createdAt).toLocaleDateString()
                     : 'N/A'}
                 </p>
+                {statsResult.expiresAt && (
+                  <p>
+                    <strong>Expires:</strong>{' '}
+                    {new Date(statsResult.expiresAt).toLocaleString()}
+                  </p>
+                )}
+                {statsResult.maxClicks !== null && statsResult.maxClicks !== undefined && (
+                  <p>
+                    <strong>Max Clicks Allowed:</strong> {statsResult.maxClicks}
+                  </p>
+                )}
               </div>
             </div>
           )}

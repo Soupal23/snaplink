@@ -20,8 +20,20 @@ const urlSchema = new mongoose.Schema({
     default: 0,
   },
   date: {
-    type: String,
+    type: Date,
     default: Date.now,
+  },
+
+  // FIELDS FOR TTL & CLICK LIMITS
+
+  expiresAt: {
+    type: Date,
+    default: null,
+    index: { expires: 0 }, // Tells MongoDB to automatically delete document when expiresAt timestamp passes
+  },
+  maxClicks: {
+    type: Number,
+    default: null,
   },
 });
 
