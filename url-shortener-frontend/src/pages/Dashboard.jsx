@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
 export default function Dashboard() {
@@ -18,6 +18,63 @@ export default function Dashboard() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [traceLoading, setTraceLoading] = useState(false);
   const [traceError, setTraceError] = useState('');
+
+  // --- User Links State ---
+const [userLinks, setUserLinks] = useState([]);
+const [loadingLinks, setLoadingLinks] = useState(false);
+const [deleteError, setDeleteError] = useState('');
+
+    //  Fetch user's created links
+    const fetchUserLinks = useCallback(async () => {
+    if (!token) return;
+    setLoadingLinks(true);
+    try {
+        const res = await fetch('http://localhost:5000/api/url/my-links', {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        });
+        const data = await res.json();
+        if (res.ok) {
+        setUserLinks(data);
+        }
+    } catch (err) {
+        console.error('Error fetching user links:', err);
+    } finally {
+        setLoadingLinks(false);
+    }
+    }, [token]);
+
+    // Fetch links on initial page load
+    useEffect(() => {
+    fetchUserLinks();
+    }, [fetchUserLinks]);
+
+    // 2. Handle deleting a link
+    const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this link?')) return;
+    
+    setDeleteError('');
+    try {
+        const res = await fetch(`http://localhost:5000/api/url/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete link');
+        }
+
+        // Optimistically update state to remove the deleted link
+        setUserLinks((prev) => prev.filter((link) => link._id !== id));
+    } catch (err) {
+        setDeleteError(err.message);
+    }
+    };
 
   // Handle URL Shortening
   const handleShorten = async (e) => {
@@ -44,6 +101,7 @@ export default function Dashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to shorten URL');
       setShortenedResult(data);
+      fetchUserLinks();
     } catch (err) {
       setShortenError(err.message);
     } finally {
@@ -275,6 +333,67 @@ export default function Dashboard() {
                 </div>
                 </div>
             )}
+            </section> 
+            {/* Section 3: My Links Table */}
+            <section style={styles.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={styles.cardTitle}>🔗 My Shortened Links</h2>
+                <button onClick={fetchUserLinks} style={styles.refreshBtn}>
+                ↻ Refresh
+                </button>
+            </div>
+
+            {deleteError && <div style={styles.errorBanner}>{deleteError}</div>}
+
+            {loadingLinks ? (
+                <p style={styles.mutedText}>Loading your links...</p>
+            ) : userLinks.length === 0 ? (
+                <p style={styles.mutedText}>You haven't created any shortened links yet.</p>
+            ) : (
+                <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                    <thead>
+                    <tr style={styles.tableHeaderRow}>
+                        <th style={styles.th}>Short Link</th>
+                        <th style={styles.th}>Original URL</th>
+                        <th style={styles.th}>Clicks</th>
+                        <th style={styles.th}>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {userLinks.map((link) => (
+                        <tr key={link._id} style={styles.tableRow}>
+                        <td style={styles.td}>
+                            <a
+                            href={link.shortUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={styles.linkText}
+                            >
+                            {link.urlCode}
+                            </a>
+                        </td>
+                        <td style={{ ...styles.td, ...styles.truncatedCell }} title={link.originalUrl}>
+                            {link.originalUrl}
+                        </td>
+                        <td style={styles.td}>
+                            <span style={styles.badge}>{link.clicks || 0}</span>
+                        </td>
+                        <td style={styles.td}>
+                            <button
+                            onClick={() => handleDelete(link._id)}
+                            style={styles.deleteBtn}
+                            title="Delete Link"
+                            >
+                            🗑️ Delete
+                            </button>
+                        </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+                </div>
+            )}
             </section>
         </div>
       </main>
@@ -497,6 +616,72 @@ closeResultBtn: {
   border: 'none',
   color: '#94a3b8',
   cursor: 'pointer',
+  fontSize: '14px',
+},
+refreshBtn: {
+  background: 'none',
+  border: '1px solid #475569',
+  color: '#94a3b8',
+  borderRadius: '4px',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontSize: '13px',
+},
+tableWrapper: {
+  overflowX: 'auto',
+},
+table: {
+  width: '100%',
+  borderCollapse: 'collapse',
+  textAlign: 'left',
+  fontSize: '14px',
+},
+tableHeaderRow: {
+  borderBottom: '1px solid #334155',
+},
+th: {
+  padding: '10px 12px',
+  color: '#94a3b8',
+  fontWeight: '600',
+},
+tableRow: {
+  borderBottom: '1px solid #1e293b',
+},
+td: {
+  padding: '12px',
+  color: '#e2e8f0',
+},
+truncatedCell: {
+  maxWidth: '220px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+},
+linkText: {
+  color: '#38bdf8',
+  textDecoration: 'none',
+  fontWeight: '500',
+},
+badge: {
+  backgroundColor: '#1e293b',
+  border: '1px solid #334155',
+  padding: '2px 8px',
+  borderRadius: '12px',
+  fontSize: '12px',
+  color: '#38bdf8',
+},
+deleteBtn: {
+  backgroundColor: '#ef4444',
+  color: '#ffffff',
+  border: 'none',
+  padding: '6px 12px',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  fontSize: '13px',
+  fontWeight: '500',
+},
+mutedText: {
+  color: '#94a3b8',
   fontSize: '14px',
 },
 };
