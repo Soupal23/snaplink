@@ -16,19 +16,17 @@ app.use(cors());
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
 
-
 // Global Rate Limiter
-
 const { apiLimiter } = require('./middleware/rateLimiter');
 app.use(apiLimiter);
-
 
 // Connect to MongoDB
 connectDB();
 
-// Mount Routes
-app.use('/', require('./routes/index'));
+// Mount Routes (API routes come BEFORE root redirect route)
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/url', require('./routes/url'));
+app.use('/', require('./routes/index')); // Move this to the bottom
 
 const PORT = process.env.PORT || 5000;
 

@@ -10,12 +10,14 @@ const { isPrivateHost, isMaliciousUrl } = require('../utils/securityCheck');
 // Import rate limiting middleware
 const { shortenLimiter, apiLimiter } = require('../middleware/rateLimiter');
 
+// Import Auth Middleware
+const { auth, optionalAuth } = require('../middleware/auth');
+
 // =======================================================
-// POST /api/url/shorten (Supports Custom Slugs, Security & TTL/Click Limits)
+// POST /api/url/shorten (Supports Custom Slugs, Security, TTL/Click Limits & User Association)
 // =======================================================
-// shortenLimiter added 
-router.post('/shorten', shortenLimiter, async (req, res) => {
-  // 1. Destructure new optional fields from req.body
+router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
+  // Destructure optional fields from req.body
   const { originalUrl, customCode, expiresInHours, maxClicks } = req.body;
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 
@@ -29,9 +31,7 @@ router.post('/shorten', shortenLimiter, async (req, res) => {
   }
 
   try {
-    // ===================================================
-    // SECURITY VALIDATION STEP
-    // ===================================================
+    // Security Validation Step
     const parsedUrl = new URL(originalUrl);
 
     // Block non-HTTP/HTTPS protocols
@@ -56,21 +56,16 @@ router.post('/shorten', shortenLimiter, async (req, res) => {
         message: 'Security risk: This URL has been flagged for malware or phishing.',
       });
     }
-    // ===================================================
 
-    // ===================================================
-    // CALCULATE EXPIRATION & CLICK LIMITS
-    // ===================================================
+    // Calculate Expiration & Click Limits
     let expiresAt = null;
     if (expiresInHours && !isNaN(expiresInHours) && Number(expiresInHours) > 0) {
-      // Calculate date in future: Current Time + (Hours * 60m * 60s * 1000ms)
       expiresAt = new Date(Date.now() + Number(expiresInHours) * 60 * 60 * 1000);
     }
 
     const parsedMaxClicks = maxClicks && !isNaN(maxClicks) && Number(maxClicks) > 0 
       ? Number(maxClicks) 
       : null;
-    // ===================================================
 
     let urlCode;
 
@@ -82,9 +77,9 @@ router.post('/shorten', shortenLimiter, async (req, res) => {
       }
       urlCode = customCode;
     } else {
-      // Return existing short link ONLY if no custom expiration or click limits were specified
-      if (!expiresAt && !parsedMaxClicks) {
-        let existingUrl = await Url.findOne({ originalUrl, expiresAt: null, maxClicks: null });
+      // Return existing short link ONLY if no user, custom expiration, or click limits were specified
+      if (!expiresAt && !parsedMaxClicks && !req.user) {
+        let existingUrl = await Url.findOne({ originalUrl, expiresAt: null, maxClicks: null, user: null });
         if (existingUrl) {
           return res.json(existingUrl);
         }
@@ -96,6 +91,7 @@ router.post('/shorten', shortenLimiter, async (req, res) => {
     const shortUrl = `${baseUrl}/${urlCode}`;
 
     const url = new Url({
+      user: req.user ? req.user.id : null, // Link user ID if logged in
       originalUrl,
       shortUrl,
       urlCode,
@@ -113,9 +109,22 @@ router.post('/shorten', shortenLimiter, async (req, res) => {
 });
 
 // =======================================================
+// GET /api/url/my-links (User Dashboard Endpoint)
+// =======================================================
+router.get('/my-links', apiLimiter, auth, async (req, res) => {
+  try {
+    // Fetch all URLs created by the currently authenticated user, newest first
+    const urls = await Url.find({ user: req.user.id }).sort({ date: -1 });
+    return res.json(urls);
+  } catch (err) {
+    console.error('Fetch my-links error:', err.message);
+    return res.status(500).json({ message: 'Server error fetching user links' });
+  }
+});
+
+// =======================================================
 // GET /api/url/stats/:code (Analytics Route)
 // =======================================================
-//  apiLimiter added 
 router.get('/stats/:code', apiLimiter, async (req, res) => {
   try {
     const url = await Url.findOne({ urlCode: req.params.code });
@@ -136,6 +145,43 @@ router.get('/stats/:code', apiLimiter, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// =======================================================
+// DELETE /api/url/:id (Delete User's Own Link)
+// =======================================================
+router.delete('/:id', apiLimiter, auth, async (req, res) => {
+  try {
+    const url = await Url.findById(req.params.id);
+
+    // 1. Check if the link exists
+    if (!url) {
+      return res.status(404).json({ message: 'URL not found' });
+    }
+
+    // 2. Ownership Check: Ensure link belongs to the currently logged-in user
+    if (!url.user || url.user.toString() !== req.user.id) {
+      return res.status(403).json({ 
+        message: 'Forbidden: You can only delete links that you created.' 
+      });
+    }
+
+    // 3. Delete from MongoDB
+    await Url.findByIdAndDelete(req.params.id);
+
+    return res.json({ 
+      message: 'Short link deleted successfully.', 
+      deletedId: req.params.id 
+    });
+  } catch (err) {
+    console.error('Delete URL error:', err.message);
+    
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ message: 'URL not found' });
+    }
+    
+    return res.status(500).json({ message: 'Server error deleting URL' });
   }
 });
 

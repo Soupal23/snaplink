@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const urlSchema = new mongoose.Schema({
+  // USER ASSOCIATION (NEW)
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null, // null for guest links, ObjectId for logged-in users
+  },
   originalUrl: {
     type: String,
     required: true,
@@ -25,11 +31,10 @@ const urlSchema = new mongoose.Schema({
   },
 
   // FIELDS FOR TTL & CLICK LIMITS
-
   expiresAt: {
     type: Date,
     default: null,
-    index: { expires: 0 }, // Tells MongoDB to automatically delete document when expiresAt timestamp passes
+    index: { expires: 0 }, // Automatically deletes document when expiresAt timestamp passes
   },
   maxClicks: {
     type: Number,
