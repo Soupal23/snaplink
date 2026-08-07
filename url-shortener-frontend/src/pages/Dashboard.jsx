@@ -73,6 +73,39 @@ export default function Dashboard() {
     }
   };
 
+  // Clear form fields and hide result box
+    const handleClear = () => {
+    setOriginalUrl('');
+    setCustomAlias('');
+    setExpiresInHours('');
+    setMaxClicks('');
+    setShortenedResult(null);
+    setShortenError('');
+    };
+
+    // Clear previous result when user edits original URL
+    const handleUrlChange = (e) => {
+    setOriginalUrl(e.target.value);
+    if (shortenedResult) setShortenedResult(null);
+    if (shortenError) setShortenError('');
+  };
+
+  // Clear Trace Analytics input and result box
+  const handleTraceClear = () => {
+  setTraceCode('');
+  setAnalyticsData(null);
+  setTraceError('');
+  };
+
+  // Auto-hide previous analytics result when user edits the code
+  const handleTraceCodeChange = (e) => {
+  setTraceCode(e.target.value);
+  if (analyticsData) setAnalyticsData(null);
+  if (traceError) setTraceError('');
+  };
+
+
+
   return (
     <div style={styles.page}>
       {/* Navbar */}
@@ -104,114 +137,145 @@ export default function Dashboard() {
             {shortenError && <div style={styles.errorBanner}>{shortenError}</div>}
 
             <form onSubmit={handleShorten} style={styles.form}>
-              <div style={styles.inputGroup}>
+                <div style={styles.inputGroup}>
                 <label style={styles.label}>Original Link *</label>
                 <input
-                  type="url"
-                  required
-                  value={originalUrl}
-                  onChange={(e) => setOriginalUrl(e.target.value)}
-                  placeholder="https://example.com/my-very-long-url"
-                  style={styles.input}
+                    type="url"
+                    required
+                    value={originalUrl}
+                    onChange={handleUrlChange}
+                    placeholder="https://example.com/my-very-long-url"
+                    style={styles.input}
                 />
-              </div>
+                </div>
 
-              <div style={styles.row}>
+                <div style={styles.row}>
                 <div style={styles.inputGroup}>
-                  <label style={styles.label}>Alias (Optional)</label>
-                  <input
+                    <label style={styles.label}>Alias (Optional)</label>
+                    <input
                     type="text"
                     value={customAlias}
                     onChange={(e) => setCustomAlias(e.target.value)}
                     placeholder="e.g., my-custom-link"
                     style={styles.input}
-                  />
+                    />
                 </div>
 
                 <div style={styles.inputGroup}>
-                  <label style={styles.label}>Expires In (Hours)</label>
-                  <input
+                    <label style={styles.label}>Expires In (Hours)</label>
+                    <input
                     type="number"
                     min="1"
                     value={expiresInHours}
                     onChange={(e) => setExpiresInHours(e.target.value)}
                     placeholder="e.g., 24"
                     style={styles.input}
-                  />
+                    />
                 </div>
-              </div>
+                </div>
 
-              <div style={styles.inputGroup}>
+                <div style={styles.inputGroup}>
                 <label style={styles.label}>Max Clicks (Optional)</label>
                 <input
-                  type="number"
-                  min="1"
-                  value={maxClicks}
-                  onChange={(e) => setMaxClicks(e.target.value)}
-                  placeholder="e.g., 100"
-                  style={styles.input}
+                    type="number"
+                    min="1"
+                    value={maxClicks}
+                    onChange={(e) => setMaxClicks(e.target.value)}
+                    placeholder="e.g., 100"
+                    style={styles.input}
                 />
-              </div>
+                </div>
 
-              <button type="submit" disabled={shortenLoading} style={styles.primaryBtn}>
-                {shortenLoading ? 'Patching...' : 'Patch It ▶'}
-              </button>
+                {/* Form Action Buttons */}
+                <div style={styles.btnRow}>
+                <button type="submit" disabled={shortenLoading} style={styles.primaryBtn}>
+                    {shortenLoading ? 'Patching...' : 'Patch It ▶'}
+                </button>
+                {(originalUrl || shortenedResult) && (
+                    <button type="button" onClick={handleClear} style={styles.clearBtn}>
+                    ✕ Clear
+                    </button>
+                )}
+                </div>
             </form>
 
             {/* Shorten Result Display */}
             {shortenedResult && (
-              <div style={styles.resultBox}>
-                <span style={styles.resultLabel}>Shortened Link Created:</span>
+                <div style={styles.resultBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={styles.resultLabel}>Shortened Link Created:</span>
+                    <button onClick={() => setShortenedResult(null)} style={styles.closeResultBtn}>
+                    ✕
+                    </button>
+                </div>
                 <a
-                  href={shortenedResult.shortUrl || `http://localhost:5000/${shortenedResult.shortCode}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={styles.resultLink}
+                    href={
+                    shortenedResult.shortUrl ||
+                    `http://localhost:5000/${shortenedResult.urlCode || shortenedResult.customCode}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.resultLink}
                 >
-                  {shortenedResult.shortUrl || `http://localhost:5000/${shortenedResult.shortCode}`}
+                    {shortenedResult.shortUrl ||
+                    `http://localhost:5000/${shortenedResult.urlCode || shortenedResult.customCode}`}
                 </a>
-              </div>
+                </div>
             )}
-          </section>
+            </section>
 
           {/* Section 2: Trace Analytics Card */}
-          <section style={styles.card}>
+            <section style={styles.card}>
             <h2 style={styles.cardTitle}>📊 Trace Analytics</h2>
 
             {traceError && <div style={styles.errorBanner}>{traceError}</div>}
 
             <form onSubmit={handleTrace} style={styles.form}>
-              <div style={styles.inputGroup}>
+                <div style={styles.inputGroup}>
                 <label style={styles.label}>Short Code / Alias</label>
                 <input
-                  type="text"
-                  required
-                  value={traceCode}
-                  onChange={(e) => setTraceCode(e.target.value)}
-                  placeholder="Enter short code (e.g., my-custom-link)"
-                  style={styles.input}
+                    type="text"
+                    required
+                    value={traceCode}
+                    onChange={handleTraceCodeChange}
+                    placeholder="Enter short code (e.g., my-custom-link)"
+                    style={styles.input}
                 />
-              </div>
+                </div>
 
-              <button type="submit" disabled={traceLoading} style={styles.secondaryBtn}>
-                {traceLoading ? 'Querying...' : 'Query ▶'}
-              </button>
+                {/* Button Row with Query & Clear */}
+                <div style={styles.btnRow}>
+                <button type="submit" disabled={traceLoading} style={styles.secondaryBtn}>
+                    {traceLoading ? 'Querying...' : 'Query ▶'}
+                </button>
+                {(traceCode || analyticsData) && (
+                    <button type="button" onClick={handleTraceClear} style={styles.clearBtn}>
+                    ✕ Clear
+                    </button>
+                )}
+                </div>
             </form>
 
             {/* Analytics Output */}
             {analyticsData && (
-              <div style={styles.analyticsBox}>
-                <div style={styles.statRow}>
-                  <span>Total Clicks:</span>
-                  <strong>{analyticsData.clicks ?? analyticsData.clickCount ?? 0}</strong>
+                <div style={styles.analyticsBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={styles.resultLabel}>Analytics Result:</span>
+                    <button onClick={() => setAnalyticsData(null)} style={styles.closeResultBtn}>
+                    ✕
+                    </button>
                 </div>
                 <div style={styles.statRow}>
-                  <span>Original URL:</span>
-                  <span style={styles.truncatedUrl}>{analyticsData.originalUrl}</span>
+                    <span>Total Clicks:</span>
+                    <strong>{analyticsData.clicks ?? analyticsData.clickCount ?? 0}</strong>
                 </div>
-              </div>
+                <div style={styles.statRow}>
+                    <span>Original URL:</span>
+                    <span style={styles.truncatedUrl}>{analyticsData.originalUrl}</span>
+                </div>
+                </div>
             )}
-          </section>
+            </section>
         </div>
       </main>
     </div>
@@ -338,16 +402,16 @@ const styles = {
     marginTop: '8px',
   },
   secondaryBtn: {
-    padding: '12px',
-    borderRadius: '6px',
-    border: 'none',
-    backgroundColor: '#0284c7',
-    color: '#ffffff',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '8px',
-  },
+  flex: 2,
+  padding: '12px',
+  borderRadius: '6px',
+  border: 'none',
+  backgroundColor: '#0284c7',
+  color: '#ffffff',
+  fontSize: '15px',
+  fontWeight: '600',
+  cursor: 'pointer',
+},
   errorBanner: {
     backgroundColor: '#7f1d1d',
     color: '#fca5a5',
@@ -401,4 +465,38 @@ const styles = {
     whiteSpace: 'nowrap',
     color: '#38bdf8',
   },
+  btnRow: {
+  display: 'flex',
+  gap: '12px',
+  marginTop: '8px',
+},
+primaryBtn: {
+  flex: 2,
+  padding: '12px',
+  borderRadius: '6px',
+  border: 'none',
+  backgroundColor: '#2563eb',
+  color: '#ffffff',
+  fontSize: '15px',
+  fontWeight: '600',
+  cursor: 'pointer',
+},
+clearBtn: {
+  flex: 1,
+  padding: '12px',
+  borderRadius: '6px',
+  border: '1px solid #475569',
+  backgroundColor: '#334155',
+  color: '#f8fafc',
+  fontSize: '14px',
+  fontWeight: '500',
+  cursor: 'pointer',
+},
+closeResultBtn: {
+  background: 'none',
+  border: 'none',
+  color: '#94a3b8',
+  cursor: 'pointer',
+  fontSize: '14px',
+},
 };
