@@ -23,7 +23,7 @@ router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
 
   // Basic URL Syntax Check
   if (!validUrl.isUri(baseUrl)) {
-    return res.status(401).json({ message: 'Invalid base URL' });
+  return res.status(500).json({ message: 'Invalid BASE_URL server configuration' });
   }
 
   if (!validUrl.isUri(originalUrl)) {
@@ -123,9 +123,9 @@ router.get('/my-links', apiLimiter, auth, async (req, res) => {
 });
 
 // =======================================================
-// GET /api/url/stats/:code (Analytics Route)
+// GET /api/url/analytics/:code OR /api/url/stats/:code (Analytics Route)
 // =======================================================
-router.get('/stats/:code', apiLimiter, async (req, res) => {
+router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) => {
   try {
     const url = await Url.findOne({ urlCode: req.params.code });
 
@@ -137,7 +137,7 @@ router.get('/stats/:code', apiLimiter, async (req, res) => {
       originalUrl: url.originalUrl,
       shortUrl: url.shortUrl,
       urlCode: url.urlCode,
-      clicks: url.clicks,
+      clicks: url.clicks || 0,
       date: url.date,
       expiresAt: url.expiresAt,
       maxClicks: url.maxClicks,
