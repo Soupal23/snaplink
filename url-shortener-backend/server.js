@@ -16,6 +16,13 @@ app.use(cors());
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
 
+
+// Global Rate Limiter
+
+const { apiLimiter } = require('./middleware/rateLimiter');
+app.use(apiLimiter);
+
+
 // Connect to MongoDB
 connectDB();
 

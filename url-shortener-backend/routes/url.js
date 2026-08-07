@@ -7,10 +7,14 @@ const Url = require('../models/Url');
 // Import security utilities
 const { isPrivateHost, isMaliciousUrl } = require('../utils/securityCheck');
 
+// Import rate limiting middleware
+const { shortenLimiter, apiLimiter } = require('../middleware/rateLimiter');
+
 // =======================================================
 // POST /api/url/shorten (Supports Custom Slugs, Security & TTL/Click Limits)
 // =======================================================
-router.post('/shorten', async (req, res) => {
+// shortenLimiter added 
+router.post('/shorten', shortenLimiter, async (req, res) => {
   // 1. Destructure new optional fields from req.body
   const { originalUrl, customCode, expiresInHours, maxClicks } = req.body;
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
@@ -111,7 +115,8 @@ router.post('/shorten', async (req, res) => {
 // =======================================================
 // GET /api/url/stats/:code (Analytics Route)
 // =======================================================
-router.get('/stats/:code', async (req, res) => {
+//  apiLimiter added 
+router.get('/stats/:code', apiLimiter, async (req, res) => {
   try {
     const url = await Url.findOne({ urlCode: req.params.code });
 
