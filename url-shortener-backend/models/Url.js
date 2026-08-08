@@ -1,5 +1,21 @@
 const mongoose = require('mongoose');
 
+// Subdocument schema for recording individual click details
+const clickLogSchema = new mongoose.Schema({
+  timestamp: {
+    type: Date,
+    default: Date.now,
+  },
+  referrer: {
+    type: String,
+    default: 'Direct',
+  },
+  device: {
+    type: String,
+    default: 'Desktop',
+  },
+});
+
 const urlSchema = new mongoose.Schema({
   // USER ASSOCIATION (NEW)
   user: {
@@ -40,6 +56,9 @@ const urlSchema = new mongoose.Schema({
     type: Number,
     default: null,
   },
+
+  // CLICK ANALYTICS HISTORY (NEW)
+  clicksHistory: [clickLogSchema],
 });
 
 module.exports = mongoose.model('Url', urlSchema);

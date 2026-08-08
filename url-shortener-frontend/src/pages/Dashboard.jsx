@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts';
+
 export default function Dashboard() {
   const { user, token, logout } = useContext(AuthContext);
 
@@ -162,7 +172,15 @@ const [deleteError, setDeleteError] = useState('');
   if (traceError) setTraceError('');
   };
 
-
+// Transform date breakdown object into a chronologically sorted array for Recharts
+const formattedChartData = analyticsData?.analytics?.dates
+  ? Object.entries(analyticsData.analytics.dates)
+      .map(([date, clicks]) => ({
+        date,
+        clicks,
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sorts oldest to newest
+  : [];
 
   return (
     <div style={styles.page}>
@@ -314,25 +332,58 @@ const [deleteError, setDeleteError] = useState('');
                 </div>
             </form>
 
-            {/* Analytics Output */}
-            {analyticsData && (
-                <div style={styles.analyticsBox}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={styles.resultLabel}>Analytics Result:</span>
-                    <button onClick={() => setAnalyticsData(null)} style={styles.closeResultBtn}>
-                    ✕
-                    </button>
-                </div>
-                <div style={styles.statRow}>
-                    <span>Total Clicks:</span>
-                    <strong>{analyticsData.clicks ?? analyticsData.clickCount ?? 0}</strong>
-                </div>
-                <div style={styles.statRow}>
-                    <span>Original URL:</span>
-                    <span style={styles.truncatedUrl}>{analyticsData.originalUrl}</span>
-                </div>
-                </div>
-            )}
+            {/* Trace Analytics Result Display */}
+{analyticsData && (
+  <div style={styles.analyticsBox}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <span style={styles.resultLabel}>Analytics Summary:</span>
+      <button onClick={() => setAnalyticsData(null)} style={styles.closeResultBtn}>
+        ✕
+      </button>
+    </div>
+
+    <div style={styles.statRow}>
+      <span>Total Clicks:</span>
+      <strong>{analyticsData.clicks}</strong>
+    </div>
+
+    {/* Interactive Line Chart: Clicks Over Time */}
+    <div style={{ marginTop: '20px', width: '100%' }}>
+        <span style={styles.subLabel}>📈 Clicks Over Time</span>
+
+        {formattedChartData.length === 0 ? (
+          <p style={styles.mutedText}>No click history available yet for this link.</p>
+        ) : (
+          <div style={{ width: '100%', height: 220, marginTop: '12px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={formattedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: '#334155',
+                    borderRadius: '6px',
+                    color: '#f8fafc',
+                  }}
+                  itemStyle={{ color: '#38bdf8' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="clicks"
+                  stroke="#38bdf8"
+                  strokeWidth={3}
+                  dot={{ fill: '#38bdf8', r: 5 }}
+                  activeDot={{ r: 7 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
             </section> 
             {/* Section 3: My Links Table */}
             <section style={styles.card}>

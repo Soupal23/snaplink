@@ -2,36 +2,50 @@ const express = require('express');
 const router = express.Router();
 const Url = require('../models/Url');
 
-// =======================================================
-// GET /:code (Redirect to Original URL with TTL & Click Checks)
-// =======================================================
+// GET /:code -> Redirect to original URL & log analytics
 router.get('/:code', async (req, res) => {
   try {
     const url = await Url.findOne({ urlCode: req.params.code });
 
-    // 1. Check if URL exists
     if (!url) {
-      return res.status(404).json({ message: 'No URL found for this code' });
+      return res.status(404).json({ message: 'No URL found' });
     }
 
-    // 2. Check Expiration Timestamp (TTL)
+    // Expiration or click limit checks
     if (url.expiresAt && new Date() > new Date(url.expiresAt)) {
       return res.status(410).json({ message: 'This link has expired.' });
     }
-
-    // 3. Check Max Click Limit
-    if (url.maxClicks !== null && url.maxClicks !== undefined && url.clicks >= url.maxClicks) {
-      return res.status(410).json({ message: 'Click limit reached for this link.' });
+    if (url.maxClicks && url.clicks >= url.maxClicks) {
+      return res.status(410).json({ message: 'Link maximum click limit reached.' });
     }
 
-    // 4. Increment click counter & save
-    url.clicks++;
-    await url.save();
+    // Parse Device & Referrer
+    const userAgent = req.get('User-Agent') || '';
+    const isMobile = /mobile|android|iphone|ipad|tablet/i.test(userAgent);
+    const device = isMobile ? 'Mobile' : 'Desktop';
 
-    // 5. Redirect to destination
+    const rawReferrer = req.get('Referrer') || req.get('Referer');
+    let referrer = 'Direct';
+    if (rawReferrer) {
+      try {
+        referrer = new URL(rawReferrer).hostname;
+      } catch {
+        referrer = 'Other';
+      }
+    }
+
+    // Increment total clicks and record click history log
+    url.clicks += 1;
+    url.clicksHistory.push({
+      timestamp: new Date(),
+      referrer,
+      device,
+    });
+
+    await url.save();
     return res.redirect(url.originalUrl);
   } catch (err) {
-    console.error('Redirect error:', err);
+    console.error(err);
     return res.status(500).json({ message: 'Server error' });
   }
 });

@@ -24,7 +24,7 @@ router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
   // Basic URL Syntax Check
   if (!validUrl.isUri(baseUrl)) {
   return res.status(500).json({ message: 'Invalid BASE_URL server configuration' });
-  }
+}
 
   if (!validUrl.isUri(originalUrl)) {
     return res.status(400).json({ message: 'Invalid long URL' });
@@ -133,6 +133,38 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
       return res.status(404).json({ message: 'No URL found' });
     }
 
+    const deviceBreakdown = { Desktop: 0, Mobile: 0 };
+    const referrerBreakdown = {};
+    const dateBreakdown = {};
+
+    // 1. Process tracked clicks history
+    if (url.clicksHistory && url.clicksHistory.length > 0) {
+      url.clicksHistory.forEach((click) => {
+        if (click.device) {
+          deviceBreakdown[click.device] = (deviceBreakdown[click.device] || 0) + 1;
+        }
+        const ref = click.referrer || 'Direct';
+        referrerBreakdown[ref] = (referrerBreakdown[ref] || 0) + 1;
+
+        const dateStr = new Date(click.timestamp).toISOString().split('T')[0];
+        dateBreakdown[dateStr] = (dateBreakdown[dateStr] || 0) + 1;
+      });
+    }
+
+    // 2. Account for legacy untracked clicks (Total Clicks - History Array Length)
+    const trackedCount = url.clicksHistory ? url.clicksHistory.length : 0;
+    const legacyCount = (url.clicks || 0) - trackedCount;
+
+    if (legacyCount > 0) {
+      const createdDate = url.date
+        ? new Date(url.date).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+
+      dateBreakdown[createdDate] = (dateBreakdown[createdDate] || 0) + legacyCount;
+      deviceBreakdown.Desktop = (deviceBreakdown.Desktop || 0) + legacyCount;
+      referrerBreakdown['Direct'] = (referrerBreakdown['Direct'] || 0) + legacyCount;
+    }
+
     return res.json({
       originalUrl: url.originalUrl,
       shortUrl: url.shortUrl,
@@ -141,6 +173,11 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
       date: url.date,
       expiresAt: url.expiresAt,
       maxClicks: url.maxClicks,
+      analytics: {
+        devices: deviceBreakdown,
+        referrers: referrerBreakdown,
+        dates: dateBreakdown,
+      },
     });
   } catch (err) {
     console.error(err);
