@@ -385,7 +385,7 @@ const [deleteError, setDeleteError] = useState('');
                             style={styles.deleteBtn}
                             title="Delete Link"
                             >
-                            🗑️ Delete
+                            🗙 Delete
                             </button>
                         </td>
                         </tr>
