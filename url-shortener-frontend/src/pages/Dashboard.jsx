@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 import {
@@ -11,8 +12,12 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+// Use environment variable or fallback to localhost
+const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
+
 export default function Dashboard() {
   const { user, token, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   // Shorten form state
   const [originalUrl, setOriginalUrl] = useState('');
@@ -22,6 +27,7 @@ export default function Dashboard() {
   const [shortenedResult, setShortenedResult] = useState(null);
   const [shortenLoading, setShortenLoading] = useState(false);
   const [shortenError, setShortenError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Trace form state
   const [traceCode, setTraceCode] = useState('');
@@ -29,62 +35,68 @@ export default function Dashboard() {
   const [traceLoading, setTraceLoading] = useState(false);
   const [traceError, setTraceError] = useState('');
 
-  // --- User Links State ---
-const [userLinks, setUserLinks] = useState([]);
-const [loadingLinks, setLoadingLinks] = useState(false);
-const [deleteError, setDeleteError] = useState('');
+  // User Links State
+  const [userLinks, setUserLinks] = useState([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
-    //  Fetch user's created links
-    const fetchUserLinks = useCallback(async () => {
+  // Explicit logout handler with navigation
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // Fetch user's created links
+  const fetchUserLinks = useCallback(async () => {
     if (!token) return;
     setLoadingLinks(true);
     try {
-        const res = await fetch('http://localhost:5000/api/url/my-links', {
+      const res = await fetch(`${API_BASE_URL}/api/url/my-links`, {
         headers: {
-            'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        });
-        const data = await res.json();
-        if (res.ok) {
+      });
+      const data = await res.json();
+      if (res.ok) {
         setUserLinks(data);
-        }
+      }
     } catch (err) {
-        console.error('Error fetching user links:', err);
+      console.error('Error fetching user links:', err);
     } finally {
-        setLoadingLinks(false);
+      setLoadingLinks(false);
     }
-    }, [token]);
+  }, [token]);
 
-    // Fetch links on initial page load
-    useEffect(() => {
+  // Fetch links on initial page load
+  useEffect(() => {
     fetchUserLinks();
-    }, [fetchUserLinks]);
+  }, [fetchUserLinks]);
 
-    // 2. Handle deleting a link
-    const handleDelete = async (id) => {
+  // Handle deleting a link
+  const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this link?')) return;
-    
+
     setDeleteError('');
     try {
-        const res = await fetch(`http://localhost:5000/api/url/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/url/${id}`, {
         method: 'DELETE',
         headers: {
-            'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        });
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) {
+      if (!res.ok) {
         throw new Error(data.message || 'Failed to delete link');
-        }
+      }
 
-        // Optimistically update state to remove the deleted link
-        setUserLinks((prev) => prev.filter((link) => link._id !== id));
+      // Optimistically update state
+      setUserLinks((prev) => prev.filter((link) => link._id !== id));
     } catch (err) {
-        setDeleteError(err.message);
+      setDeleteError(err.message);
     }
-    };
+  };
 
   // Handle URL Shortening
   const handleShorten = async (e) => {
@@ -94,7 +106,7 @@ const [deleteError, setDeleteError] = useState('');
     setShortenLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/url/shorten', {
+      const res = await fetch(`${API_BASE_URL}/api/url/shorten`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,7 +139,7 @@ const [deleteError, setDeleteError] = useState('');
     setTraceLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/url/analytics/${traceCode}`, {
+      const res = await fetch(`${API_BASE_URL}/api/url/analytics/${traceCode}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -141,46 +153,50 @@ const [deleteError, setDeleteError] = useState('');
     }
   };
 
-  // Clear form fields and hide result box
-    const handleClear = () => {
+  // Copy shortened link to clipboard
+  const handleCopyLink = (url) => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Clear form fields
+  const handleClear = () => {
     setOriginalUrl('');
     setCustomAlias('');
     setExpiresInHours('');
     setMaxClicks('');
     setShortenedResult(null);
     setShortenError('');
-    };
+  };
 
-    // Clear previous result when user edits original URL
-    const handleUrlChange = (e) => {
+  const handleUrlChange = (e) => {
     setOriginalUrl(e.target.value);
     if (shortenedResult) setShortenedResult(null);
     if (shortenError) setShortenError('');
   };
 
-  // Clear Trace Analytics input and result box
   const handleTraceClear = () => {
-  setTraceCode('');
-  setAnalyticsData(null);
-  setTraceError('');
+    setTraceCode('');
+    setAnalyticsData(null);
+    setTraceError('');
   };
 
-  // Auto-hide previous analytics result when user edits the code
   const handleTraceCodeChange = (e) => {
-  setTraceCode(e.target.value);
-  if (analyticsData) setAnalyticsData(null);
-  if (traceError) setTraceError('');
+    setTraceCode(e.target.value);
+    if (analyticsData) setAnalyticsData(null);
+    if (traceError) setTraceError('');
   };
 
-// Transform date breakdown object into a chronologically sorted array for Recharts
-const formattedChartData = analyticsData?.analytics?.dates
-  ? Object.entries(analyticsData.analytics.dates)
-      .map(([date, clicks]) => ({
-        date,
-        clicks,
-      }))
-      .sort((a, b) => new Date(a.date) - new Date(b.date)) // Sorts oldest to newest
-  : [];
+  // Transform date breakdown object into a chronologically sorted array for Recharts
+  const formattedChartData = analyticsData?.analytics?.dates
+    ? Object.entries(analyticsData.analytics.dates)
+        .map(([date, clicks]) => ({
+          date,
+          clicks,
+        }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+    : [];
 
   return (
     <div style={styles.page}>
@@ -190,14 +206,13 @@ const formattedChartData = analyticsData?.analytics?.dates
           <span style={styles.userDot}></span>
           Logged in as <strong>{user?.username || user?.email || 'User'}</strong>
         </div>
-        <button onClick={logout} style={styles.logoutBtn}>
+        <button onClick={handleLogout} style={styles.logoutBtn}>
           ↳ Logout
         </button>
       </nav>
 
       {/* Main Layout Container */}
       <main style={styles.container}>
-        {/* Header Hero */}
         <header style={styles.header}>
           <h1 style={styles.brandTitle}>🔗 SnapLink</h1>
           <p style={styles.brandSubtitle}>
@@ -213,246 +228,255 @@ const formattedChartData = analyticsData?.analytics?.dates
             {shortenError && <div style={styles.errorBanner}>{shortenError}</div>}
 
             <form onSubmit={handleShorten} style={styles.form}>
-                <div style={styles.inputGroup}>
+              <div style={styles.inputGroup}>
                 <label style={styles.label}>Original Link *</label>
                 <input
-                    type="url"
-                    required
-                    value={originalUrl}
-                    onChange={handleUrlChange}
-                    placeholder="https://example.com/my-very-long-url"
-                    style={styles.input}
+                  type="url"
+                  required
+                  value={originalUrl}
+                  onChange={handleUrlChange}
+                  placeholder="https://example.com/my-very-long-url"
+                  style={styles.input}
                 />
-                </div>
+              </div>
 
-                <div style={styles.row}>
+              <div style={styles.row}>
                 <div style={styles.inputGroup}>
-                    <label style={styles.label}>Alias (Optional)</label>
-                    <input
+                  <label style={styles.label}>Alias (Optional)</label>
+                  <input
                     type="text"
                     value={customAlias}
                     onChange={(e) => setCustomAlias(e.target.value)}
                     placeholder="e.g., my-custom-link"
                     style={styles.input}
-                    />
+                  />
                 </div>
 
                 <div style={styles.inputGroup}>
-                    <label style={styles.label}>Expires In (Hours)</label>
-                    <input
+                  <label style={styles.label}>Expires In (Hours)</label>
+                  <input
                     type="number"
                     min="1"
                     value={expiresInHours}
                     onChange={(e) => setExpiresInHours(e.target.value)}
                     placeholder="e.g., 24"
                     style={styles.input}
-                    />
+                  />
                 </div>
-                </div>
+              </div>
 
-                <div style={styles.inputGroup}>
+              <div style={styles.inputGroup}>
                 <label style={styles.label}>Max Clicks (Optional)</label>
                 <input
-                    type="number"
-                    min="1"
-                    value={maxClicks}
-                    onChange={(e) => setMaxClicks(e.target.value)}
-                    placeholder="e.g., 100"
-                    style={styles.input}
+                  type="number"
+                  min="1"
+                  value={maxClicks}
+                  onChange={(e) => setMaxClicks(e.target.value)}
+                  placeholder="e.g., 100"
+                  style={styles.input}
                 />
-                </div>
+              </div>
 
-                {/* Form Action Buttons */}
-                <div style={styles.btnRow}>
+              <div style={styles.btnRow}>
                 <button type="submit" disabled={shortenLoading} style={styles.primaryBtn}>
-                    {shortenLoading ? 'Patching...' : 'Patch It ▶'}
+                  {shortenLoading ? 'Patching...' : 'Patch It ▶'}
                 </button>
                 {(originalUrl || shortenedResult) && (
-                    <button type="button" onClick={handleClear} style={styles.clearBtn}>
+                  <button type="button" onClick={handleClear} style={styles.clearBtn}>
                     ✕ Clear
-                    </button>
+                  </button>
                 )}
-                </div>
+              </div>
             </form>
 
-            {/* Shorten Result Display */}
             {shortenedResult && (
-                <div style={styles.resultBox}>
+              <div style={styles.resultBox}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={styles.resultLabel}>Shortened Link Created:</span>
-                    <button onClick={() => setShortenedResult(null)} style={styles.closeResultBtn}>
+                  <span style={styles.resultLabel}>Shortened Link Created:</span>
+                  <button onClick={() => setShortenedResult(null)} style={styles.closeResultBtn}>
                     ✕
-                    </button>
+                  </button>
                 </div>
-                <a
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                  <a
                     href={
-                    shortenedResult.shortUrl ||
-                    `http://localhost:5000/${shortenedResult.urlCode || shortenedResult.customCode}`
+                      shortenedResult.shortUrl ||
+                      `${API_BASE_URL}/${shortenedResult.urlCode || shortenedResult.customCode}`
                     }
                     target="_blank"
                     rel="noreferrer"
                     style={styles.resultLink}
-                >
+                  >
                     {shortenedResult.shortUrl ||
-                    `http://localhost:5000/${shortenedResult.urlCode || shortenedResult.customCode}`}
-                </a>
+                      `${API_BASE_URL}/${shortenedResult.urlCode || shortenedResult.customCode}`}
+                  </a>
+                  <button
+                    onClick={() =>
+                      handleCopyLink(
+                        shortenedResult.shortUrl ||
+                          `${API_BASE_URL}/${shortenedResult.urlCode || shortenedResult.customCode}`
+                      )
+                    }
+                    style={styles.copyBtn}
+                  >
+                    {copied ? '✓ Copied' : '📋 Copy'}
+                  </button>
                 </div>
+              </div>
             )}
-            </section>
+          </section>
 
           {/* Section 2: Trace Analytics Card */}
-            <section style={styles.card}>
+          <section style={styles.card}>
             <h2 style={styles.cardTitle}>📊 Trace Analytics</h2>
 
             {traceError && <div style={styles.errorBanner}>{traceError}</div>}
 
             <form onSubmit={handleTrace} style={styles.form}>
-                <div style={styles.inputGroup}>
+              <div style={styles.inputGroup}>
                 <label style={styles.label}>Short Code / Alias</label>
                 <input
-                    type="text"
-                    required
-                    value={traceCode}
-                    onChange={handleTraceCodeChange}
-                    placeholder="Enter short code (e.g., my-custom-link)"
-                    style={styles.input}
+                  type="text"
+                  required
+                  value={traceCode}
+                  onChange={handleTraceCodeChange}
+                  placeholder="Enter short code (e.g., my-custom-link)"
+                  style={styles.input}
                 />
-                </div>
+              </div>
 
-                {/* Button Row with Query & Clear */}
-                <div style={styles.btnRow}>
+              <div style={styles.btnRow}>
                 <button type="submit" disabled={traceLoading} style={styles.secondaryBtn}>
-                    {traceLoading ? 'Querying...' : 'Query ▶'}
+                  {traceLoading ? 'Querying...' : 'Query ▶'}
                 </button>
                 {(traceCode || analyticsData) && (
-                    <button type="button" onClick={handleTraceClear} style={styles.clearBtn}>
+                  <button type="button" onClick={handleTraceClear} style={styles.clearBtn}>
                     ✕ Clear
-                    </button>
+                  </button>
                 )}
-                </div>
+              </div>
             </form>
 
-            {/* Trace Analytics Result Display */}
-{analyticsData && (
-  <div style={styles.analyticsBox}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-      <span style={styles.resultLabel}>Analytics Summary:</span>
-      <button onClick={() => setAnalyticsData(null)} style={styles.closeResultBtn}>
-        ✕
-      </button>
-    </div>
+            {analyticsData && (
+              <div style={styles.analyticsBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span style={styles.resultLabel}>Analytics Summary:</span>
+                  <button onClick={() => setAnalyticsData(null)} style={styles.closeResultBtn}>
+                    ✕
+                  </button>
+                </div>
 
-    <div style={styles.statRow}>
-      <span>Total Clicks:</span>
-      <strong>{analyticsData.clicks}</strong>
-    </div>
+                <div style={styles.statRow}>
+                  <span>Total Clicks:</span>
+                  <strong>{analyticsData.clicks}</strong>
+                </div>
 
-    {/* Interactive Line Chart: Clicks Over Time */}
-    <div style={{ marginTop: '20px', width: '100%' }}>
-        <span style={styles.subLabel}>📈 Clicks Over Time</span>
+                <div style={{ marginTop: '20px', width: '100%' }}>
+                  <span style={styles.subLabel}>📈 Clicks Over Time</span>
 
-        {formattedChartData.length === 0 ? (
-          <p style={styles.mutedText}>No click history available yet for this link.</p>
-        ) : (
-          <div style={{ width: '100%', height: 220, marginTop: '12px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={formattedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    borderColor: '#334155',
-                    borderRadius: '6px',
-                    color: '#f8fafc',
-                  }}
-                  itemStyle={{ color: '#38bdf8' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="clicks"
-                  stroke="#38bdf8"
-                  strokeWidth={3}
-                  dot={{ fill: '#38bdf8', r: 5 }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-    </div>
-  )}
-            </section> 
-            {/* Section 3: My Links Table */}
-            <section style={styles.card}>
+                  {formattedChartData.length === 0 ? (
+                    <p style={styles.mutedText}>No click history available yet for this link.</p>
+                  ) : (
+                    <div style={{ width: '100%', height: 220, marginTop: '12px' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={formattedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                          <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                          <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#0f172a',
+                              borderColor: '#334155',
+                              borderRadius: '6px',
+                              color: '#f8fafc',
+                            }}
+                            itemStyle={{ color: '#38bdf8' }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="clicks"
+                            stroke="#38bdf8"
+                            strokeWidth={3}
+                            dot={{ fill: '#38bdf8', r: 5 }}
+                            activeDot={{ r: 7 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Section 3: My Links Table */}
+          <section style={styles.card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={styles.cardTitle}>🔗 My Shortened Links</h2>
-                <button onClick={fetchUserLinks} style={styles.refreshBtn}>
+              <h2 style={styles.cardTitle}>🔗 My Shortened Links</h2>
+              <button onClick={fetchUserLinks} style={styles.refreshBtn}>
                 ↻ Refresh
-                </button>
+              </button>
             </div>
 
             {deleteError && <div style={styles.errorBanner}>{deleteError}</div>}
 
             {loadingLinks ? (
-                <p style={styles.mutedText}>Loading your links...</p>
+              <p style={styles.mutedText}>Loading your links...</p>
             ) : userLinks.length === 0 ? (
-                <p style={styles.mutedText}>You haven't created any shortened links yet.</p>
+              <p style={styles.mutedText}>You haven't created any shortened links yet.</p>
             ) : (
-                <div style={styles.tableWrapper}>
+              <div style={styles.tableWrapper}>
                 <table style={styles.table}>
-                    <thead>
+                  <thead>
                     <tr style={styles.tableHeaderRow}>
-                        <th style={styles.th}>Short Link</th>
-                        <th style={styles.th}>Original URL</th>
-                        <th style={styles.th}>Clicks</th>
-                        <th style={styles.th}>Actions</th>
+                      <th style={styles.th}>Short Link</th>
+                      <th style={styles.th}>Original URL</th>
+                      <th style={styles.th}>Clicks</th>
+                      <th style={styles.th}>Actions</th>
                     </tr>
-                    </thead>
-                    <tbody>
+                  </thead>
+                  <tbody>
                     {userLinks.map((link) => (
-                        <tr key={link._id} style={styles.tableRow}>
+                      <tr key={link._id} style={styles.tableRow}>
                         <td style={styles.td}>
-                            <a
-                            href={link.shortUrl}
+                          <a
+                            href={link.shortUrl || `${API_BASE_URL}/${link.urlCode}`}
                             target="_blank"
                             rel="noreferrer"
                             style={styles.linkText}
-                            >
+                          >
                             {link.urlCode}
-                            </a>
+                          </a>
                         </td>
                         <td style={{ ...styles.td, ...styles.truncatedCell }} title={link.originalUrl}>
-                            {link.originalUrl}
+                          {link.originalUrl}
                         </td>
                         <td style={styles.td}>
-                            <span style={styles.badge}>{link.clicks || 0}</span>
+                          <span style={styles.badge}>{link.clicks || 0}</span>
                         </td>
                         <td style={styles.td}>
-                            <button
+                          <button
                             onClick={() => handleDelete(link._id)}
                             style={styles.deleteBtn}
                             title="Delete Link"
-                            >
+                          >
                             🗙 Delete
-                            </button>
+                          </button>
                         </td>
-                        </tr>
+                      </tr>
                     ))}
-                    </tbody>
+                  </tbody>
                 </table>
-                </div>
+              </div>
             )}
-            </section>
+          </section>
         </div>
       </main>
     </div>
   );
 }
 
-// Inline Style Object
+// Inline Styles Object
 const styles = {
   page: {
     minHeight: '100vh',
@@ -551,6 +575,11 @@ const styles = {
     fontWeight: '500',
     color: '#94a3b8',
   },
+  subLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#cbd5e1',
+  },
   input: {
     padding: '10px 14px',
     borderRadius: '6px',
@@ -560,7 +589,13 @@ const styles = {
     fontSize: '14px',
     outline: 'none',
   },
+  btnRow: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '8px',
+  },
   primaryBtn: {
+    flex: 2,
     padding: '12px',
     borderRadius: '6px',
     border: 'none',
@@ -569,19 +604,38 @@ const styles = {
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer',
-    marginTop: '8px',
   },
   secondaryBtn: {
-  flex: 2,
-  padding: '12px',
-  borderRadius: '6px',
-  border: 'none',
-  backgroundColor: '#0284c7',
-  color: '#ffffff',
-  fontSize: '15px',
-  fontWeight: '600',
-  cursor: 'pointer',
-},
+    flex: 2,
+    padding: '12px',
+    borderRadius: '6px',
+    border: 'none',
+    backgroundColor: '#0284c7',
+    color: '#ffffff',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  clearBtn: {
+    flex: 1,
+    padding: '12px',
+    borderRadius: '6px',
+    border: '1px solid #475569',
+    backgroundColor: '#334155',
+    color: '#f8fafc',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
+  copyBtn: {
+    padding: '4px 8px',
+    backgroundColor: '#334155',
+    color: '#38bdf8',
+    border: '1px solid #475569',
+    borderRadius: '4px',
+    fontSize: '12px',
+    cursor: 'pointer',
+  },
   errorBanner: {
     backgroundColor: '#7f1d1d',
     color: '#fca5a5',
@@ -624,115 +678,81 @@ const styles = {
   },
   statRow: {
     display: 'flex',
-    justifyContent: 'space-between',
+    justify: 'space-between',
     fontSize: '14px',
     color: '#cbd5e1',
   },
-  truncatedUrl: {
-    maxWidth: '250px',
+  closeResultBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#94a3b8',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  refreshBtn: {
+    background: 'none',
+    border: '1px solid #475569',
+    color: '#94a3b8',
+    borderRadius: '4px',
+    padding: '6px 12px',
+    cursor: 'pointer',
+    fontSize: '13px',
+  },
+  tableWrapper: {
+    overflowX: 'auto',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    textAlign: 'left',
+    fontSize: '14px',
+  },
+  tableHeaderRow: {
+    borderBottom: '1px solid #334155',
+  },
+  th: {
+    padding: '10px 12px',
+    color: '#94a3b8',
+    fontWeight: '600',
+  },
+  tableRow: {
+    borderBottom: '1px solid #1e293b',
+  },
+  td: {
+    padding: '12px',
+    color: '#e2e8f0',
+  },
+  truncatedCell: {
+    maxWidth: '220px',
+    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+  },
+  linkText: {
+    color: '#38bdf8',
+    textDecoration: 'none',
+    fontWeight: '500',
+  },
+  badge: {
+    backgroundColor: '#1e293b',
+    border: '1px solid #334155',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '12px',
     color: '#38bdf8',
   },
-  btnRow: {
-  display: 'flex',
-  gap: '12px',
-  marginTop: '8px',
-},
-primaryBtn: {
-  flex: 2,
-  padding: '12px',
-  borderRadius: '6px',
-  border: 'none',
-  backgroundColor: '#2563eb',
-  color: '#ffffff',
-  fontSize: '15px',
-  fontWeight: '600',
-  cursor: 'pointer',
-},
-clearBtn: {
-  flex: 1,
-  padding: '12px',
-  borderRadius: '6px',
-  border: '1px solid #475569',
-  backgroundColor: '#334155',
-  color: '#f8fafc',
-  fontSize: '14px',
-  fontWeight: '500',
-  cursor: 'pointer',
-},
-closeResultBtn: {
-  background: 'none',
-  border: 'none',
-  color: '#94a3b8',
-  cursor: 'pointer',
-  fontSize: '14px',
-},
-refreshBtn: {
-  background: 'none',
-  border: '1px solid #475569',
-  color: '#94a3b8',
-  borderRadius: '4px',
-  padding: '6px 12px',
-  cursor: 'pointer',
-  fontSize: '13px',
-},
-tableWrapper: {
-  overflowX: 'auto',
-},
-table: {
-  width: '100%',
-  borderCollapse: 'collapse',
-  textAlign: 'left',
-  fontSize: '14px',
-},
-tableHeaderRow: {
-  borderBottom: '1px solid #334155',
-},
-th: {
-  padding: '10px 12px',
-  color: '#94a3b8',
-  fontWeight: '600',
-},
-tableRow: {
-  borderBottom: '1px solid #1e293b',
-},
-td: {
-  padding: '12px',
-  color: '#e2e8f0',
-},
-truncatedCell: {
-  maxWidth: '220px',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-},
-linkText: {
-  color: '#38bdf8',
-  textDecoration: 'none',
-  fontWeight: '500',
-},
-badge: {
-  backgroundColor: '#1e293b',
-  border: '1px solid #334155',
-  padding: '2px 8px',
-  borderRadius: '12px',
-  fontSize: '12px',
-  color: '#38bdf8',
-},
-deleteBtn: {
-  backgroundColor: '#ef4444',
-  color: '#ffffff',
-  border: 'none',
-  padding: '6px 12px',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontSize: '13px',
-  fontWeight: '500',
-},
-mutedText: {
-  color: '#94a3b8',
-  fontSize: '14px',
-},
+  deleteBtn: {
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '500',
+  },
+  mutedText: {
+    color: '#94a3b8',
+    fontSize: '14px',
+  },
 };
