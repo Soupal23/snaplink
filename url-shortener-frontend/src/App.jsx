@@ -4,7 +4,7 @@ import './App.css';
 import './index.css';
 
 // Context & Route Protection
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages

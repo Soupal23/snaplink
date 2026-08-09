@@ -4,10 +4,9 @@ import { AuthContext } from '../context/AuthContext';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext) || {};
-  const token = localStorage.getItem('token');
-  
-  // Check if user is authenticated via context or local storage token
+  const { user, token } = useContext(AuthContext) || {};
+
+  // Check authentication directly from React Context state
   const isAuthenticated = Boolean(user || token);
 
   const handleAction = () => {
@@ -20,7 +19,7 @@ export default function LandingPage() {
 
   return (
     <div style={styles.container}>
-      {/* Dynamic Background Glow Animations */}
+      {/* Background Glows */}
       <div style={styles.glowTopLeft} />
       <div style={styles.glowBottomRight} />
 
@@ -30,34 +29,20 @@ export default function LandingPage() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
         @keyframes pulseGlow {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.7; }
         }
-        .hero-title {
-          animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .hero-sub {
-          animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .hero-cta {
-          animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .feature-card {
-          transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-        }
+        .hero-title { animation: fadeIn 0.8s ease forwards; }
+        .hero-sub { animation: fadeIn 1s ease forwards; }
+        .hero-cta { animation: fadeIn 1.2s ease forwards; }
+        .feature-card { transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
         .feature-card:hover {
           transform: translateY(-6px);
           border-color: #38bdf8 !important;
           box-shadow: 0 12px 30px -10px rgba(56, 189, 248, 0.2);
         }
-        .btn-glow {
-          transition: all 0.3s ease;
-        }
+        .btn-glow { transition: all 0.3s ease; }
         .btn-glow:hover {
           box-shadow: 0 0 20px rgba(37, 99, 235, 0.6);
           transform: scale(1.02);
@@ -157,7 +142,6 @@ export default function LandingPage() {
   );
 }
 
-// Inline Style Object
 const styles = {
   container: {
     minHeight: '100vh',
@@ -199,6 +183,8 @@ const styles = {
     borderBottom: '1px solid #1e293b',
     backdropFilter: 'blur(10px)',
     zIndex: 10,
+    width: '100%',
+    boxSizing: 'border-box',
   },
   brandLogo: {
     fontSize: '22px',
@@ -211,6 +197,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
+    marginLeft: 'auto', // Ensures buttons stay pushed to the right
   },
   navLinkBtn: {
     background: 'none',
@@ -229,6 +216,7 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
+    whiteSpace: 'nowrap',
   },
   heroSection: {
     maxWidth: '1100px',
@@ -237,6 +225,8 @@ const styles = {
     textAlign: 'center',
     flex: 1,
     zIndex: 5,
+    width: '100%',
+    boxSizing: 'border-box',
   },
   badge: {
     display: 'inline-block',

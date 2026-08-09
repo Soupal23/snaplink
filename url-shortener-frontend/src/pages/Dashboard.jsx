@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+//import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
 import {
@@ -42,8 +43,8 @@ export default function Dashboard() {
 
   // Explicit logout handler with navigation
   const handleLogout = () => {
-    logout();
-    navigate('/');
+  logout();
+  window.location.assign('/');
   };
 
   // Fetch user's created links
