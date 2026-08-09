@@ -12,12 +12,22 @@ const clickLogSchema = new mongoose.Schema({
   },
   device: {
     type: String,
+    enum: ['Mobile', 'Tablet', 'Desktop', 'Unknown'], // Enforces consistent casing and categories
     default: 'Desktop',
+  },
+  // OPTIONAL: Keep these if you want to display browser/OS stats on your dashboard
+  browser: {
+    type: String,
+    default: 'Unknown',
+  },
+  os: {
+    type: String,
+    default: 'Unknown',
   },
 });
 
 const urlSchema = new mongoose.Schema({
-  // USER ASSOCIATION (NEW)
+  // USER ASSOCIATION
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -57,7 +67,7 @@ const urlSchema = new mongoose.Schema({
     default: null,
   },
 
-  // CLICK ANALYTICS HISTORY (NEW)
+  // CLICK ANALYTICS HISTORY
   clicksHistory: [clickLogSchema],
 });
 

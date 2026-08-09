@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const useragent = require('express-useragent');
 const Url = require('../models/Url');
 
 // GET /:code -> Redirect to original URL & log analytics
@@ -19,11 +20,18 @@ router.get('/:code', async (req, res) => {
       return res.status(410).json({ message: 'Link maximum click limit reached.' });
     }
 
-    // Parse Device & Referrer
-    const userAgent = req.get('User-Agent') || '';
-    const isMobile = /mobile|android|iphone|ipad|tablet/i.test(userAgent);
-    const device = isMobile ? 'Mobile' : 'Desktop';
+    // Parse Device, Browser, and OS
+    const source = req.get('User-Agent') || '';
+    const ua = useragent.parse(source);
 
+    let device = 'Desktop';
+    if (ua.isTablet) {
+      device = 'Tablet';
+    } else if (ua.isMobile) {
+      device = 'Mobile';
+    }
+
+    // Parse Referrer
     const rawReferrer = req.get('Referrer') || req.get('Referer');
     let referrer = 'Direct';
     if (rawReferrer) {
@@ -40,12 +48,14 @@ router.get('/:code', async (req, res) => {
       timestamp: new Date(),
       referrer,
       device,
+      browser: ua.browser || 'Unknown',
+      os: ua.os || 'Unknown',
     });
 
     await url.save();
     return res.redirect(url.originalUrl);
   } catch (err) {
-    console.error(err);
+    console.error('Redirect Error:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 });
