@@ -417,7 +417,7 @@ const styles = {
   },
   navbar: { 
     display: 'flex', 
-    justify: 'space-between', 
+    justifyContent: 'space-between', 
     alignItems: 'center', 
     padding: '16px 20px', // Slightly reduced padding for mobile
     boxSizing: 'border-box',
