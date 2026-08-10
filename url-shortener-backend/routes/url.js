@@ -18,7 +18,10 @@ const { auth, optionalAuth } = require('../middleware/auth');
 // =======================================================
 router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
   const { originalUrl, customCode, expiresInHours, maxClicks } = req.body;
-  const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+
+  // 1. Remove trailing slash if present to avoid double-slash URLs (e.g., domain.com//code)
+  const rawBaseUrl = process.env.BASE_URL || 'http://localhost:5000';
+  const baseUrl = rawBaseUrl.replace(/\/$/, '');
 
   if (!validUrl.isUri(baseUrl)) {
     return res.status(500).json({ message: 'Invalid BASE_URL server configuration' });
@@ -72,7 +75,10 @@ router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
       if (!expiresAt && !parsedMaxClicks && !req.user) {
         let existingUrl = await Url.findOne({ originalUrl, expiresAt: null, maxClicks: null, user: null });
         if (existingUrl) {
-          return res.json(existingUrl);
+          // Ensure the returned object reflects the current environment's BASE_URL
+          const updatedDoc = existingUrl.toObject();
+          updatedDoc.shortUrl = `${baseUrl}/${existingUrl.urlCode}`;
+          return res.json(updatedDoc);
         }
       }
       urlCode = nanoid(6);
@@ -122,21 +128,17 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
       return res.status(404).json({ message: 'No URL found' });
     }
 
-    // Include Tablet & Unknown to match the expanded schema enum
     const deviceBreakdown = { Desktop: 0, Mobile: 0, Tablet: 0, Unknown: 0 };
     const browserBreakdown = {};
     const osBreakdown = {};
     const referrerBreakdown = {};
     const dateBreakdown = {};
 
-    // 1. Process tracked clicks history
     if (url.clicksHistory && url.clicksHistory.length > 0) {
       url.clicksHistory.forEach((click) => {
-        // Device tracking
         const device = click.device || 'Unknown';
         deviceBreakdown[device] = (deviceBreakdown[device] || 0) + 1;
 
-        // Browser & OS tracking
         if (click.browser) {
           browserBreakdown[click.browser] = (browserBreakdown[click.browser] || 0) + 1;
         }
@@ -144,17 +146,14 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
           osBreakdown[click.os] = (osBreakdown[click.os] || 0) + 1;
         }
 
-        // Referrer tracking
         const ref = click.referrer || 'Direct';
         referrerBreakdown[ref] = (referrerBreakdown[ref] || 0) + 1;
 
-        // Date tracking (YYYY-MM-DD)
         const dateStr = new Date(click.timestamp).toISOString().split('T')[0];
         dateBreakdown[dateStr] = (dateBreakdown[dateStr] || 0) + 1;
       });
     }
 
-    // 2. Account for legacy untracked clicks (Total Clicks - History Array Length)
     const trackedCount = url.clicksHistory ? url.clicksHistory.length : 0;
     const legacyCount = (url.clicks || 0) - trackedCount;
 

@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors'); // 1. Require cors
+const cors = require('cors');
 const dns = require('dns');
 
 require('dotenv').config();
@@ -10,8 +10,25 @@ const connectDB = require('./config/db');
 
 const app = express();
 
-// 2. Enable CORS middleware (must be before routes)
-app.use(cors());
+// --- CORS CONFIGURATION FOR PRODUCTION & LOCAL DEV ---
+const allowedOrigins = [
+  'http://localhost:5173', // Vite local server
+  'http://localhost:3000', // CRA / Next.js local server
+  process.env.FRONTEND_URL // Live production frontend URL from Render
+].filter(Boolean); // Cleans out undefined values if FRONTEND_URL isn't set yet
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like Postman, curl, or direct browser redirect links)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS policy'));
+    }
+  },
+  credentials: true
+}));
+// ---------------------------------------------------
 
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
@@ -26,7 +43,7 @@ connectDB();
 // Mount Routes (API routes come BEFORE root redirect route)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/url', require('./routes/url'));
-app.use('/', require('./routes/index')); // Move this to the bottom
+app.use('/', require('./routes/index')); 
 
 const PORT = process.env.PORT || 5000;
 
