@@ -20,40 +20,60 @@ router.get('/:code', async (req, res) => {
       return res.status(410).json({ message: 'Link maximum click limit reached.' });
     }
 
-    // Parse Device, Browser, and OS
-    const source = req.get('User-Agent') || '';
-    const ua = useragent.parse(source);
+    // Safely attempt analytics logging
+    try {
+      const source = req.get('User-Agent') || '';
+      
+      // express-useragent safety check
+      const ua = typeof useragent.parse === 'function' 
+        ? useragent.parse(source) 
+        : { browser: 'Unknown', os: 'Unknown', isMobile: false, isTablet: false };
 
-    let device = 'Desktop';
-    if (ua.isTablet) {
-      device = 'Tablet';
-    } else if (ua.isMobile) {
-      device = 'Mobile';
-    }
-
-    // Parse Referrer
-    const rawReferrer = req.get('Referrer') || req.get('Referer');
-    let referrer = 'Direct';
-    if (rawReferrer) {
-      try {
-        referrer = new URL(rawReferrer).hostname;
-      } catch {
-        referrer = 'Other';
+      let device = 'Desktop';
+      if (ua.isTablet) {
+        device = 'Tablet';
+      } else if (ua.isMobile) {
+        device = 'Mobile';
       }
+
+      // Parse Referrer
+      const rawReferrer = req.get('Referrer') || req.get('Referer');
+      let referrer = 'Direct';
+      if (rawReferrer) {
+        try {
+          referrer = new URL(rawReferrer).hostname;
+        } catch {
+          referrer = 'Other';
+        }
+      }
+
+      // Increment total clicks and record click history log
+      url.clicks += 1;
+      url.clicksHistory.push({
+        timestamp: new Date(),
+        referrer,
+        device,
+        browser: ua.browser || 'Unknown',
+        os: ua.os || 'Unknown',
+      });
+
+      await url.save();
+    } catch (analyticsErr) {
+      console.error('Analytics tracking failed silently:', analyticsErr);
+      // Fallback: Still increment click count if full analytics parse fails
+      url.clicks += 1;
+      await url.save();
     }
 
-    // Increment total clicks and record click history log
-    url.clicks += 1;
-    url.clicksHistory.push({
-      timestamp: new Date(),
-      referrer,
-      device,
-      browser: ua.browser || 'Unknown',
-      os: ua.os || 'Unknown',
-    });
+    // Ensure URL has http:// or https:// protocol
+    let redirectUrl = url.originalUrl;
+    if (!/^https?:\/\//i.test(redirectUrl)) {
+      redirectUrl = `https://${redirectUrl}`;
+    }
 
-    await url.save();
-    return res.redirect(url.originalUrl);
+    // Always perform the redirect
+    return res.redirect(redirectUrl);
+
   } catch (err) {
     console.error('Redirect Error:', err);
     return res.status(500).json({ message: 'Server error' });
