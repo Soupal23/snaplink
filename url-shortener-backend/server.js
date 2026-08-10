@@ -10,6 +10,9 @@ const connectDB = require('./config/db');
 
 const app = express();
 
+// 1. TRUST PROXY FOR RENDER (Fixes express-rate-limit IP detection on cloud hosts)
+app.set('trust proxy', 1);
+
 // --- CORS CONFIGURATION FOR PRODUCTION & LOCAL DEV ---
 const allowedOrigins = [
   'http://localhost:5173', // Vite local server
@@ -39,6 +42,11 @@ app.use(apiLimiter);
 
 // Connect to MongoDB
 connectDB();
+
+// 2. HEALTH CHECK ROUTE (Replaces "Cannot GET /" with a success message)
+app.get('/', (req, res) => {
+  res.send('SnapLink API Server is Live & Running!');
+});
 
 // Mount Routes (API routes come BEFORE root redirect route)
 app.use('/api/auth', require('./routes/auth'));
