@@ -405,28 +405,77 @@ export default function Dashboard() {
   );
 }
 
-// Updated Styles
 const styles = {
-  page: { minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
-  navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px', backgroundColor: '#1e293b', borderBottom: '1px solid #334155' },
+  page: { 
+    minHeight: '100vh', 
+    width: '100%', 
+    overflowX: 'hidden', // Prevents horizontal scroll / white gap
+    boxSizing: 'border-box',
+    backgroundColor: '#0f172a', 
+    color: '#f8fafc', 
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' 
+  },
+  navbar: { 
+    display: 'flex', 
+    justify: 'space-between', 
+    alignItems: 'center', 
+    padding: '16px 20px', // Slightly reduced padding for mobile
+    boxSizing: 'border-box',
+    width: '100%',
+    backgroundColor: '#1e293b', 
+    borderBottom: '1px solid #334155' 
+  },
   navUser: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8' },
   userDot: { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' },
   logoutBtn: { backgroundColor: '#334155', color: '#f8fafc', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
-  container: { maxWidth: '900px', margin: '0 auto', padding: '40px 20px' },
+  container: { 
+    maxWidth: '900px', 
+    width: '100%', 
+    margin: '0 auto', 
+    padding: '24px 16px', // Reduced padding so content fits on small screens
+    boxSizing: 'border-box' 
+  },
   header: { textAlign: 'center', marginBottom: '36px' },
   brandTitle: { fontSize: '32px', fontWeight: '800', color: '#38bdf8', marginBottom: '8px' },
   brandSubtitle: { fontSize: '15px', color: '#94a3b8' },
-  grid: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  card: { backgroundColor: '#1e293b', borderRadius: '12px', padding: '28px', border: '1px solid #334155', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' },
+  grid: { display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' },
+  card: { 
+    backgroundColor: '#1e293b', 
+    borderRadius: '12px', 
+    padding: '20px', // Reduced padding for mobile screens
+    border: '1px solid #334155', 
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
+    boxSizing: 'border-box',
+    width: '100%'
+  },
   cardTitle: { fontSize: '20px', fontWeight: '700', color: '#ffffff', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '12px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 },
+  form: { display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' },
+  
+  // FIX: Stacks fields vertically on mobile screens, puts them side-by-side on desktop
+  row: { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+    gap: '16px',
+    width: '100%'
+  },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 },
   label: { fontSize: '13px', fontWeight: '500', color: '#94a3b8' },
-  input: { padding: '10px 14px', borderRadius: '6px', border: '1px solid #475569', backgroundColor: '#0f172a', color: '#ffffff', fontSize: '14px', outline: 'none' },
-  btnRow: { display: 'flex', gap: '12px', marginTop: '8px' },
-  primaryBtn: { flex: 2, padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: '#ffffff', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
-  clearBtn: { flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #475569', backgroundColor: '#334155', color: '#f8fafc', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
+  
+  // FIX: Ensures inputs respect container boundaries
+  input: { 
+    padding: '10px 14px', 
+    borderRadius: '6px', 
+    border: '1px solid #475569', 
+    backgroundColor: '#0f172a', 
+    color: '#ffffff', 
+    fontSize: '14px', 
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+  btnRow: { display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' },
+  primaryBtn: { flex: 2, minWidth: '140px', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: '#ffffff', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
+  clearBtn: { flex: 1, minWidth: '100px', padding: '12px', borderRadius: '6px', border: '1px solid #475569', backgroundColor: '#334155', color: '#f8fafc', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
   copyBtn: { padding: '6px 10px', backgroundColor: '#334155', color: '#38bdf8', border: '1px solid #475569', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' },
   badgeBtn: { backgroundColor: '#0f172a', border: '1px solid #38bdf8', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', color: '#38bdf8', cursor: 'pointer' },
   errorBanner: { backgroundColor: '#7f1d1d', color: '#fca5a5', padding: '10px 14px', borderRadius: '6px', fontSize: '14px', marginBottom: '16px' },
@@ -435,13 +484,15 @@ const styles = {
   resultLink: { color: '#38bdf8', fontSize: '15px', fontWeight: '500', textDecoration: 'none', wordBreak: 'break-all' },
   closeResultBtn: { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px' },
   refreshBtn: { background: 'none', border: '1px solid #475569', color: '#94a3b8', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px' },
-  tableWrapper: { overflowX: 'auto' },
+  
+  // FIX: Contains tables safely on small screens
+  tableWrapper: { overflowX: 'auto', width: '100%' },
   table: { width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' },
   tableHeaderRow: { borderBottom: '1px solid #334155' },
   th: { padding: '10px 12px', color: '#94a3b8', fontWeight: '600' },
   tableRow: { borderBottom: '1px solid #1e293b' },
   td: { padding: '12px', color: '#e2e8f0' },
-  truncatedCell: { maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  truncatedCell: { maxWidth: '160px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   linkText: { color: '#38bdf8', textDecoration: 'none', fontWeight: '500' },
   deleteBtn: { backgroundColor: '#ef4444', color: '#ffffff', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' },
   mutedText: { color: '#94a3b8', fontSize: '14px' },
@@ -450,12 +501,12 @@ const styles = {
   overviewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
   overviewCardTitle: { fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 },
   liveBadge: { backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(74, 222, 128, 0.3)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' },
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' },
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', width: '100%' },
   kpiCard: { backgroundColor: '#0f172a', borderRadius: '12px', padding: '18px 20px', border: '1px solid rgba(51, 65, 85, 0.7)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   kpiCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' },
   kpiLabel: { fontSize: '12px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' },
   iconWrapper: { width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' },
   kpiValue: { fontSize: '28px', fontWeight: '800', color: '#f8fafc', letterSpacing: '-0.5px', lineHeight: '1.2' },
-  topAliasText: { fontSize: '20px', fontWeight: '700', color: '#38bdf8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' },
+  topAliasText: { fontSize: '20px', fontWeight: '700', color: '#38bdf8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' },
   kpiSubtext: { fontSize: '12px', color: '#64748b', marginTop: '6px', marginBottom: 0 },
 };
