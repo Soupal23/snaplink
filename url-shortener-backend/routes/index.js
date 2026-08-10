@@ -3,6 +3,18 @@ const router = express.Router();
 const useragent = require('express-useragent');
 const Url = require('../models/Url');
 
+// Helper function to accurately detect device type (handles Android webviews & in-app browsers)
+const detectDevice = (uaString = '') => {
+  const ua = uaString.toLowerCase();
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+    return 'Tablet';
+  }
+  if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|hpwOS|webOS|Opera M(obi|ini)/i.test(ua)) {
+    return 'Mobile';
+  }
+  return 'Desktop';
+};
+
 // GET /:code -> Redirect to original URL & log analytics
 router.get('/:code', async (req, res) => {
   try {
@@ -22,19 +34,15 @@ router.get('/:code', async (req, res) => {
 
     // Safely attempt analytics logging
     try {
-      const source = req.get('User-Agent') || '';
+      const rawUserAgent = req.get('User-Agent') || req.headers['user-agent'] || '';
       
-      // express-useragent safety check
-      const ua = typeof useragent.parse === 'function' 
-        ? useragent.parse(source) 
-        : { browser: 'Unknown', os: 'Unknown', isMobile: false, isTablet: false };
+      // Explicit regex check to prevent mobile in-app browsers from registering as Desktop
+      const device = detectDevice(rawUserAgent);
 
-      let device = 'Desktop';
-      if (ua.isTablet) {
-        device = 'Tablet';
-      } else if (ua.isMobile) {
-        device = 'Mobile';
-      }
+      // Parse Browser and OS
+      const uaParsed = req.useragent || (typeof useragent.parse === 'function' ? useragent.parse(rawUserAgent) : {});
+      const browser = uaParsed.browser && uaParsed.browser !== 'unknown' ? uaParsed.browser : 'Unknown';
+      const os = uaParsed.os && uaParsed.os !== 'unknown' ? uaParsed.os : 'Unknown';
 
       // Parse Referrer
       const rawReferrer = req.get('Referrer') || req.get('Referer');
@@ -53,8 +61,8 @@ router.get('/:code', async (req, res) => {
         timestamp: new Date(),
         referrer,
         device,
-        browser: ua.browser || 'Unknown',
-        os: ua.os || 'Unknown',
+        browser,
+        os,
       });
 
       await url.save();
