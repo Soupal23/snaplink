@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dns = require('dns');
+const useragent = require('express-useragent'); // FIXED: Added missing import
 
 require('dotenv').config();
 
@@ -33,8 +34,9 @@ app.use(cors({
 }));
 // ---------------------------------------------------
 
-// Middleware to parse incoming JSON payloads
+// Middleware to parse incoming JSON payloads & user agent
 app.use(express.json());
+app.use(useragent.express());
 
 // Global Rate Limiter
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -43,12 +45,12 @@ app.use(apiLimiter);
 // Connect to MongoDB
 connectDB();
 
-// 2. HEALTH CHECK ROUTE (Replaces "Cannot GET /" with a success message)
+// 2. HEALTH CHECK ROUTE
 app.get('/', (req, res) => {
   res.send('SnapLink API Server is Live & Running!');
 });
 
-// Mount Routes (API routes come BEFORE root redirect route)
+// Mount Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/url', require('./routes/url'));
 app.use('/', require('./routes/index')); 
