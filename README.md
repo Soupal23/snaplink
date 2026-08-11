@@ -290,4 +290,4 @@ SnapLink uses environment variables to handle configuration across development a
 
 | Variable | Required | Description | Example (Local) | Example (Production) |
 | :--- | :--- | :--- | :--- | :--- |
-| `VITE_API_BASE_URL` | **Yes** | Base URL endpoint for all backend API requests | `http://localhost:5000/api` | `https://snaplink-n0r3.onrender.com/api` |
+| `VITE_API_BASE_URL` | Yes | Base URL endpoint for all backend API requests | `http://localhost:5000/api` | `https://snaplink-n0r3.onrender.com/api` |
