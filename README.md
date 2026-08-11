@@ -119,6 +119,14 @@ The SnapLink REST API manages user authentication, URL shortening, real-time ana
 | `DELETE` | `/api/links/:id` | **Protected** | Delete a shortened link and its associated analytics |
 
 
+### Redirection Endpoint (Public)
+
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/s/:shortCode` | Public | Records device analytics and issues an HTTP 302 redirect to long URL |
+
+
 <br />
 
 
@@ -133,6 +141,7 @@ The SnapLink REST API manages user authentication, URL shortening, real-time ana
 ### **Backend**
 * **Runtime:** Node.js
 * **Framework:** Express.js
+* **Database:** MongoDB & Mongoose ODM
 * **Authentication:** JSON Web Tokens (JWT) & `bcrypt`
 
 ### **Deployment**
@@ -207,7 +216,7 @@ Ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/your-username/SnapLink.git](https://github.com/your-username/SnapLink.git)
+git clone https://github.com/your-username/SnapLink.git
 cd SnapLink
 ```
 ###  Backend Setup 
@@ -284,6 +293,7 @@ SnapLink uses environment variables to handle configuration across development a
 | `JWT_SECRET` | Yes | Secret key used to sign and verify JWT authentication tokens | `super_secret_jwt_key_123` | `a_long_random_secure_secret_string` |
 | `CLIENT_URL` | Yes | Allowed Origin for CORS requests from the frontend | `http://localhost:5173` | `https://snaplink.onrender.com` |
 
+---
 
 ### Frontend Configuration (`url-shortener-frontend/.env`)
 
