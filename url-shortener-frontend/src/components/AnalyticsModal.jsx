@@ -55,6 +55,7 @@ export default function AnalyticsModal({ urlCode, onClose, token }) {
         source,
         clicks,
       }))
+      .sort((a, b) => b.clicks - a.clicks)
     : [];
 
   // Transform and sort Daily Timeline object to Chart Array
@@ -64,10 +65,16 @@ export default function AnalyticsModal({ urlCode, onClose, token }) {
         .sort((a, b) => new Date(a.date) - new Date(b.date))
     : [];
 
-  // Determine top device and referrer for key metrics
+  // Determine top device
   const topDevice = deviceData.reduce(
     (max, item) => (item.clicks > max.clicks ? item : max),
     { device: 'N/A', clicks: 0 }
+  );
+
+  // Determine primary source by highest click count
+  const topReferrer = referrerData.reduce(
+    (max, item) => (item.clicks > max.clicks ? item : max),
+    { source: 'Direct', clicks: 0 }
   );
 
   return (
@@ -110,10 +117,10 @@ export default function AnalyticsModal({ urlCode, onClose, token }) {
                 <span style={styles.kpiValue}>{topDevice.device}</span>
               </div>
               <div style={styles.kpiCard}>
-                <span style={styles.kpiLabel}>Primary Source</span>
-                <span style={styles.kpiValue}>
-                  {referrerData[0]?.source || 'Direct'}
-                </span>
+              <span style={styles.kpiLabel}>Primary Source</span>
+              <span style={styles.kpiValue}>
+                {topReferrer.source}
+              </span>
               </div>
             </div>
 
