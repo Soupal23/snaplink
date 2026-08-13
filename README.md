@@ -45,7 +45,7 @@
 ###  Analytics & Click Metrics
 | Analytics Chart | User Links Table |
 | :---: | :---: |
-| ![Link Analytics Chart](./url-shortener-frontend/assets/SnapLink_user_profile_section_3b.png) | ![User Links Table](./url-shortener-frontend/assets/SnapLink_user_profile_section3a.png) |
+| ![Link Analytics Chart](./url-shortener-frontend/assets/SnapLink_analytics.png) | ![User Links Table](./url-shortener-frontend/assets/SnapLink_user_profile_section3a.png) |
 
 ##  System Architecture & System Design
 
