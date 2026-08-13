@@ -164,8 +164,7 @@ SNAPLINK/
 │   │   └── User.js                 # User account Mongoose schema
 │   ├── routes/
 │   │   ├── auth.js                 # Authentication routes (/api/auth)
-│   │   ├── index.js                # Aggregated API router
-│   │   ├── redirect.js             # Short URL redirection handler (/s/:shortCode)
+│   │   ├── index.js                # Short URL redirection handler (/:code) with analytics & guardrails
 │   │   └── url.js                  # URL creation & analytics routes (/api/links)
 │   ├── utils/
 │   │   └── securityCheck.js        # Input validation & security helpers
