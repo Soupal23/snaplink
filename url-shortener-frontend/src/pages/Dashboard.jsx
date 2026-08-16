@@ -32,7 +32,8 @@ export default function Dashboard() {
   // Logout handler using SPA Router navigation
   const handleLogout = () => {
     logout();
-    window.location.assign('/');
+    //window.location.assign('/');
+    navigate('/');
   };
 
   // Fetch user's created links

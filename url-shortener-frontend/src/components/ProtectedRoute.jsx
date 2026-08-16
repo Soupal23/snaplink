@@ -17,7 +17,9 @@ export default function ProtectedRoute({ children }) {
 
   // 2. Redirect only if there is no authentication token
   if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
+    //return <Navigate to="/login" state={{ from: location }} replace />;
+
   }
 
   return children;
