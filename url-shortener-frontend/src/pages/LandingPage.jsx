@@ -96,7 +96,7 @@ export default function LandingPage() {
             className="btn-glow"
             onClick={handleAction}
           >
-            {isAuthenticated ? 'Go to Dashboard ⚡' : 'Start Shortening Free ⚡'}
+            {isAuthenticated ? 'Go to Dashboard' : 'Start Shortening'}
           </button>
           <button
             style={styles.secondaryCta}
@@ -126,7 +126,7 @@ export default function LandingPage() {
 
           <div style={styles.card} className="feature-card">
             <div style={styles.cardIcon}>📈</div>
-            <h3 style={styles.cardTitle}>Recharts Analytics</h3>
+            <h3 style={styles.cardTitle}>Analytics</h3>
             <p style={styles.cardText}>
               Monitor audience traffic trends with real-time interactive line charts, device breakdowns, and referral origins.
             </p>
