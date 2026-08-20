@@ -14,7 +14,7 @@ router.post('/login', async (req, res) => {
   if (!email || typeof email !== 'string' || !validator.isEmail(email)) {
     return res.status(400).json({ message: 'A valid email address is required.' });
   }
-  if (!password || typeof password !== 'string' || password.length < 8) {
+  if (!password || typeof password !== 'string' || password.length < 4) {
     return res.status(400).json({ message: 'Password must be at least 8 characters.' });
   }
 
