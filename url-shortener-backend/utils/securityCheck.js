@@ -50,7 +50,7 @@ async function isPrivateHost(hostname) {
  */
 async function isMaliciousUrl(targetUrl) {
   const apiKey = process.env.GOOGLE_SAFE_BROWSING_KEY;
-  if (!apiKey) return false; // Skip if API key is not configured
+  if (!apiKey) return false;
 
   try {
     const response = await fetch(
@@ -71,12 +71,17 @@ async function isMaliciousUrl(targetUrl) {
       }
     );
 
+    if (!response.ok) {
+      const errData = await response.json();
+      console.error('Google Safe Browsing API Error:', errData);
+      return false;
+    }
+
     const data = await response.json();
-    // If matches array exists and is not empty, it's flagged as dangerous
     return Boolean(data.matches && data.matches.length > 0);
   } catch (err) {
     console.error('Safe Browsing API check failed:', err);
-    return false; // Fail open to avoid blocking valid URLs if the API is temporarily down
+    return false;
   }
 }
 
