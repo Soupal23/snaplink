@@ -120,7 +120,7 @@ router.get('/my-links', apiLimiter, auth, async (req, res) => {
 // =======================================================
 // GET /api/url/analytics/:code OR /api/url/stats/:code (Analytics Route)
 // =======================================================
-router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) => {
+router.get(['/stats/:code', '/analytics/:code'], apiLimiter, auth , async (req, res) => {
   try {
     const url = await Url.findOne({ urlCode: req.params.code });
 
@@ -128,7 +128,7 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
       return res.status(404).json({ message: 'No URL found' });
     }
 
-    if (!url.user || url.user.toString() !== req.user.id) {
+    if (url.user && url.user.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Forbidden: You do not own this link.' });
     }
 
@@ -153,7 +153,10 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
         const ref = click.referrer || 'Direct';
         referrerBreakdown[ref] = (referrerBreakdown[ref] || 0) + 1;
 
-        const dateStr = new Date(click.timestamp).toISOString().split('T')[0];
+        // 🛡️ Safe Date Parsing: Prevents RangeError on invalid/missing timestamps
+        const rawDate = click.timestamp ? new Date(click.timestamp) : new Date();
+        const validDate = !isNaN(rawDate.getTime()) ? rawDate : new Date();
+        const dateStr = validDate.toISOString().split('T')[0];
         dateBreakdown[dateStr] = (dateBreakdown[dateStr] || 0) + 1;
       });
     }
@@ -162,9 +165,10 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
     const legacyCount = (url.clicks || 0) - trackedCount;
 
     if (legacyCount > 0) {
-      const createdDate = url.date
-        ? new Date(url.date).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
+      
+      const rawCreatedDate = url.date ? new Date(url.date) : new Date();
+      const validCreatedDate = !isNaN(rawCreatedDate.getTime()) ? rawCreatedDate : new Date();
+      const createdDate = validCreatedDate.toISOString().split('T')[0];
 
       dateBreakdown[createdDate] = (dateBreakdown[createdDate] || 0) + legacyCount;
       deviceBreakdown.Desktop = (deviceBreakdown.Desktop || 0) + legacyCount;
