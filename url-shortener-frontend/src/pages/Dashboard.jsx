@@ -105,6 +105,11 @@ export default function Dashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to shorten URL');
       setShortenedResult(data);
+      // Reset form inputs after successful creation
+      setOriginalUrl('');
+      setCustomAlias('');
+      setExpiresInHours('');
+      setMaxClicks('');
       fetchUserLinks();
     } catch (err) {
       setShortenError(err.message);

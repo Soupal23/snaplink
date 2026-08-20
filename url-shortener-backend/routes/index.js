@@ -17,69 +17,57 @@ const detectDevice = (uaString = '') => {
 
 // GET /:code -> Redirect to original URL & log analytics
 router.get('/:code', async (req, res) => {
+  // Prevent browser caching of redirects or 410 expired statuses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   try {
+    // 1. Fetch the URL document by short code
     const url = await Url.findOne({ urlCode: req.params.code });
 
     if (!url) {
       return res.status(404).json({ message: 'No URL found' });
     }
 
-    // Expiration or click limit checks
+    // 2. Expiration check
     if (url.expiresAt && new Date() > new Date(url.expiresAt)) {
       return res.status(410).json({ message: 'This link has expired.' });
     }
-    if (url.maxClicks && url.clicks >= url.maxClicks) {
+
+    // 3. Max clicks check
+    if (url.maxClicks !== null && url.maxClicks !== undefined && url.clicks >= url.maxClicks) {
       return res.status(410).json({ message: 'Link maximum click limit reached.' });
     }
 
-    // Safely attempt analytics logging
-    try {
-      const rawUserAgent = req.get('User-Agent') || req.headers['user-agent'] || '';
-      
-      // Explicit regex check to prevent mobile in-app browsers from registering as Desktop
-      const device = detectDevice(rawUserAgent);
-
-      // Parse Browser and OS
-      const uaParsed = req.useragent || (typeof useragent.parse === 'function' ? useragent.parse(rawUserAgent) : {});
-      const browser = uaParsed.browser && uaParsed.browser !== 'unknown' ? uaParsed.browser : 'Unknown';
-      const os = uaParsed.os && uaParsed.os !== 'unknown' ? uaParsed.os : 'Unknown';
-
-      // Parse Referrer
-      const rawReferrer = req.get('Referrer') || req.get('Referer');
-      let referrer = 'Direct';
-      if (rawReferrer) {
-        try {
-          referrer = new URL(rawReferrer).hostname;
-        } catch {
-          referrer = 'Other';
-        }
-      }
-
-      // Increment total clicks and record click history log
-      url.clicks += 1;
-      url.clicksHistory.push({
-        timestamp: new Date(),
-        referrer,
-        device,
-        browser,
-        os,
-      });
-
-      await url.save();
-    } catch (analyticsErr) {
-      console.error('Analytics tracking failed silently:', analyticsErr);
-      // Fallback: Still increment click count if full analytics parse fails
-      url.clicks += 1;
-      await url.save();
+    // 4. Build click analytics details
+    const rawUserAgent = req.get('User-Agent') || '';
+    const device = detectDevice(rawUserAgent);
+    const uaParsed = req.useragent || {};
+    const browser = uaParsed.browser && uaParsed.browser !== 'unknown' ? uaParsed.browser : 'Unknown';
+    const os = uaParsed.os && uaParsed.os !== 'unknown' ? uaParsed.os : 'Unknown';
+    const rawReferrer = req.get('Referrer') || req.get('Referer');
+    let referrer = 'Direct';
+    if (rawReferrer) {
+      try { referrer = new URL(rawReferrer).hostname; } catch { referrer = 'Other'; }
     }
 
-    // Ensure URL has http:// or https:// protocol
+    const clickEntry = { timestamp: new Date(), referrer, device, browser, os };
+
+    // 5. Atomically update clicks count and push to history
+    await Url.updateOne(
+      { _id: url._id },
+      {
+        $inc: { clicks: 1 },
+        $push: { clicksHistory: clickEntry },
+      }
+    );
+
+    // 6. Format destination URL and perform redirect
     let redirectUrl = url.originalUrl;
     if (!/^https?:\/\//i.test(redirectUrl)) {
       redirectUrl = `https://${redirectUrl}`;
     }
-
-    // Always perform the redirect
     return res.redirect(redirectUrl);
 
   } catch (err) {
