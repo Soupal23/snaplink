@@ -50,22 +50,38 @@ async function isPrivateHost(hostname) {
  */
 async function isMaliciousUrl(targetUrl) {
   const apiKey = process.env.GOOGLE_SAFE_BROWSING_KEY;
-  if (!apiKey) return false;
+  if (!apiKey) {
+    console.warn('[SafeBrowsing] Skipping check: GOOGLE_SAFE_BROWSING_KEY is not defined in environment.');
+    return false;
+  }
 
   try {
+    // Generate alternate URL protocol variant (http <-> https) for thorough threat matching
+    const urlEntries = [{ url: targetUrl }];
+    if (targetUrl.startsWith('http://')) {
+      urlEntries.push({ url: targetUrl.replace(/^http:\/\//, 'https://') });
+    } else if (targetUrl.startsWith('https://')) {
+      urlEntries.push({ url: targetUrl.replace(/^https:\/\//, 'http://') });
+    }
+
     const response = await fetch(
       `https://safebrowsing.googleapis.com/v4/threatMatches:find?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(5000),
         body: JSON.stringify({
           client: { clientId: 'snaplink', clientVersion: '1.0.0' },
           threatInfo: {
-            threatTypes: ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE'],
+            threatTypes: [
+              'MALWARE',
+              'SOCIAL_ENGINEERING',
+              'UNWANTED_SOFTWARE',
+              'POTENTIALLY_HARMFUL_APPLICATION',
+            ],
             platformTypes: ['ANY_PLATFORM'],
             threatEntryTypes: ['URL'],
-            threatEntries: [{ url: targetUrl }],
+            threatEntries: urlEntries,
           },
         }),
       }
@@ -73,14 +89,18 @@ async function isMaliciousUrl(targetUrl) {
 
     if (!response.ok) {
       const errData = await response.json();
-      console.error('Google Safe Browsing API Error:', errData);
+      console.error('[SafeBrowsing] Google API HTTP Error:', response.status, errData);
       return false;
     }
 
     const data = await response.json();
-    return Boolean(data.matches && data.matches.length > 0);
+    const isDangerous = Boolean(data.matches && data.matches.length > 0);
+    if (isDangerous) {
+      console.log(`[SafeBrowsing] Flagged malicious URL match for: ${targetUrl}`);
+    }
+    return isDangerous;
   } catch (err) {
-    console.error('Safe Browsing API check failed:', err);
+    console.error('[SafeBrowsing] API check exception:', err.message);
     return false;
   }
 }
