@@ -58,6 +58,7 @@ async function isMaliciousUrl(targetUrl) {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(4000),
         body: JSON.stringify({
           client: { clientId: 'snaplink', clientVersion: '1.0.0' },
           threatInfo: {
