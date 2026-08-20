@@ -128,6 +128,10 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, async (req, res) =>
       return res.status(404).json({ message: 'No URL found' });
     }
 
+    if (!url.user || url.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this link.' });
+    }
+
     const deviceBreakdown = { Desktop: 0, Mobile: 0, Tablet: 0, Unknown: 0 };
     const browserBreakdown = {};
     const osBreakdown = {};
