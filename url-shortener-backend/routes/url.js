@@ -53,10 +53,13 @@ router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
         message: 'Security risk: This URL has been flagged for malware or phishing.',
       });
     }
+    
+    const MAX_EXPIRES_HOURS = 8760;
 
     let expiresAt = null;
     if (expiresInHours && !isNaN(expiresInHours) && Number(expiresInHours) > 0) {
-      expiresAt = new Date(Date.now() + Number(expiresInHours) * 60 * 60 * 1000);
+      const hours = Math.min(Number(expiresInHours), MAX_EXPIRES_HOURS);
+      expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000);
     }
 
     const parsedMaxClicks = maxClicks && !isNaN(maxClicks) && Number(maxClicks) > 0 
