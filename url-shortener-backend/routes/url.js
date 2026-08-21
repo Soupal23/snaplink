@@ -223,43 +223,13 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, auth , async (req, 
 // =======================================================
 // DELETE /api/url/:id (Delete User's Own Link)
 // =======================================================
-// router.delete('/:id', apiLimiter, auth, async (req, res) => {
-//   try {
-//     const url = await Url.findById(req.params.id);
-
-//     if (!url) {
-//       return res.status(404).json({ message: 'URL not found' });
-//     }
-
-//     if (!url.user || url.user.toString() !== req.user.id) {
-//       return res.status(403).json({ 
-//         message: 'Forbidden: You can only delete links that you created.' 
-//       });
-//     }
-
-//     await Url.findByIdAndDelete(req.params.id);
-
-//     return res.json({ 
-//       message: 'Short link deleted successfully.', 
-//       deletedId: req.params.id 
-//     });
-//   } catch (err) {
-//     console.error('Delete URL error:', err.message);
-    
-//     if (err.kind === 'ObjectId') {
-//       return res.status(404).json({ message: 'URL not found' });
-//     }
-    
-//     return res.status(500).json({ message: 'Server error deleting URL' });
-//   }
-// });
 
 router.delete('/:id', apiLimiter, auth, async (req, res) => {
   try {
     // Atomic: ownership is enforced inside the query, not checked separately
     const deleted = await Url.findOneAndDelete({
       _id: req.params.id,
-      user: req.user.id,      // ← Only deletes if this user owns the document
+      user: req.user.id,      // Only deletes if this user owns the document
     });
     if (!deleted) {
       // Could be: not found, or not owned by this user
