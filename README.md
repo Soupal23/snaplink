@@ -95,6 +95,10 @@ SnapLink has been hardened through a comprehensive security and concurrency audi
 * **JWT Expiration & Stale Session Eviction:** Integrated `jwt-decode` into the React `AuthProvider` context. Expired or malformed JWT tokens stored in `localStorage` are automatically evicted on application initialization, preventing silent `401 Unauthorized` dashboard rendering states.
 * **Resource Access Ownership Controls:** Secured analytics endpoints (`/api/url/analytics/:code`) with JWT authentication and strict link-ownership checks, ensuring users can only access click analytics for links they created.
 
+### Concurrency & Data Integrity
+* **Atomic Click Incrementing:** Replaced non-atomic read-modify-write cycles with atomic MongoDB `$inc` and `$push` updates (`Url.updateOne`). Eliminates lost-write race conditions and enforces strict `maxClicks` limit compliance under high-concurrency traffic bursts.
+* **TOCTOU Race Condition Prevention:** Refactored link deletion routines to execute single-query atomic operations (`findOneAndDelete({ _id, user: req.user.id })`), guarding against Time-of-Check-to-Time-of-Use race conditions.
+
 ##  API Overview & Documentation
 
 The SnapLink REST API manages user authentication, URL shortening, real-time analytics collection, and redirection.
