@@ -99,6 +99,10 @@ SnapLink has been hardened through a comprehensive security and concurrency audi
 * **Atomic Click Incrementing:** Replaced non-atomic read-modify-write cycles with atomic MongoDB `$inc` and `$push` updates (`Url.updateOne`). Eliminates lost-write race conditions and enforces strict `maxClicks` limit compliance under high-concurrency traffic bursts.
 * **TOCTOU Race Condition Prevention:** Refactored link deletion routines to execute single-query atomic operations (`findOneAndDelete({ _id, user: req.user.id })`), guarding against Time-of-Check-to-Time-of-Use race conditions.
 
+### Threat Prevention & Safe Redirection
+* **Google Safe Browsing API v4 Integration:** All incoming URLs are screened against Google Safe Browsing API v4 threat lists (checking `MALWARE`, `SOCIAL_ENGINEERING`, `UNWANTED_SOFTWARE`, and `POTENTIALLY_HARMFUL_APPLICATION`) across both HTTP and HTTPS variants before short links are generated.
+* **Server-Side Request Forgery (SSRF) Protection:** Hostname resolution checks block link creation targeting loopback, internal, or private IP spaces (`127.0.0.1`, `192.168.x.x`, `10.x.x.x`, `localhost`).
+
 ##  API Overview & Documentation
 
 The SnapLink REST API manages user authentication, URL shortening, real-time analytics collection, and redirection.
