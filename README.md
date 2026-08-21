@@ -102,6 +102,8 @@ SnapLink has been hardened through a comprehensive security and concurrency audi
 ### Threat Prevention & Safe Redirection
 * **Google Safe Browsing API v4 Integration:** All incoming URLs are screened against Google Safe Browsing API v4 threat lists (checking `MALWARE`, `SOCIAL_ENGINEERING`, `UNWANTED_SOFTWARE`, and `POTENTIALLY_HARMFUL_APPLICATION`) across both HTTP and HTTPS variants before short links are generated.
 * **Server-Side Request Forgery (SSRF) Protection:** Hostname resolution checks block link creation targeting loopback, internal, or private IP spaces (`127.0.0.1`, `192.168.x.x`, `10.x.x.x`, `localhost`).
+* **Custom Slug Whitelisting:** Custom alias slugs are enforced against a strict alphanumeric/underscore whitelist with length constraints (3–50 characters) and reserved keyword checks (`api`, `health`, `static`, etc.) to prevent route-squatting and path-traversal attacks.
+* **Stale Browser Cache Invalidation:** Short URL redirect endpoints output explicit HTTP `Cache-Control: no-store, no-cache, must-revalidate` response headers, ensuring browsers do not cache `302` redirects or stale `410 Gone` expiration states.
 
 ##  API Overview & Documentation
 
