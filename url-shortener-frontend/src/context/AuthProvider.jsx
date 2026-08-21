@@ -1,11 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { AuthContext } from './AuthContext';
-
+import { jwtDecode } from 'jwt-decode';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
+const isTokenValid = (token) => {
+  if (!token) return false;
+  try {
+    const { exp } = jwtDecode(token);
+    // Check against current time with a 30-second buffer
+    return Date.now() < (exp * 1000) - 30_000;
+  } catch {
+    return false; // malformed token
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+  const [token, setToken] = useState(() => {
+    const stored = localStorage.getItem('token') || '';
+    // Evict expired token on load — don't even store it in state
+    if (!isTokenValid(stored)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return '';
+    }
+    return stored;
+  });
   const [user, setUser] = useState(() => {
+    const storedToken = localStorage.getItem('token');
+    if (!isTokenValid(storedToken)) return null; // Consistent with token state
     const savedUser = localStorage.getItem('user');
     try {
       return savedUser ? JSON.parse(savedUser) : null;
