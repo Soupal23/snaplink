@@ -65,12 +65,35 @@ router.post('/shorten', shortenLimiter, optionalAuth, async (req, res) => {
 
     let urlCode;
 
+    const RESERVED_CODES = new Set(['api', 'health', 'static', 'favicon.ico', 'robots.txt', '.well-known']);
+    const ALIAS_REGEX = /^[a-zA-Z0-9_-]+$/;  // alphanumeric, dash, underscore only
+    const MAX_ALIAS_LENGTH = 50;
+    const MIN_ALIAS_LENGTH = 3;
+
     if (customCode) {
+      // Type guard
+      if (typeof customCode !== 'string') {
+        return res.status(400).json({ message: 'Custom alias must be a string.' });
+      }
+      // Length guard
+      if (customCode.length < MIN_ALIAS_LENGTH || customCode.length > MAX_ALIAS_LENGTH) {
+        return res.status(400).json({ message: `Custom alias must be between ${MIN_ALIAS_LENGTH} and ${MAX_ALIAS_LENGTH} characters.` });
+      }
+      // Character whitelist
+      if (!ALIAS_REGEX.test(customCode)) {
+        return res.status(400).json({ message: 'Custom alias can only contain letters, numbers, hyphens, and underscores.' });
+      }
+      // Reserved word check
+      if (RESERVED_CODES.has(customCode.toLowerCase())) {
+        return res.status(400).json({ message: 'This alias is reserved and cannot be used.' });
+      }
+
       const existingCode = await Url.findOne({ urlCode: customCode });
       if (existingCode) {
         return res.status(400).json({ message: 'Custom alias is already in use. Choose another one.' });
       }
       urlCode = customCode;
+    
     } else {
       if (!expiresAt && !parsedMaxClicks && !req.user) {
         let existingUrl = await Url.findOne({ originalUrl, expiresAt: null, maxClicks: null, user: null });
