@@ -22,7 +22,14 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = {
-  shortenLimiter,
-  apiLimiter,
-};
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15-minute window
+  max: 10,                     // max 10 login/register attempts per IP per 15 min
+  message: {
+    message: 'Too many authentication attempts. Please wait 15 minutes before trying again.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Only count failed attempts against the limit
+});
+module.exports = { shortenLimiter, apiLimiter, authLimiter };

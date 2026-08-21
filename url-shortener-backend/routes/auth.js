@@ -3,11 +3,11 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
+const { authLimiter } = require('../middleware/rateLimiter');
 // routes/auth.js — FIXED (both /register and /login)
 const validator = require('validator');
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter , async (req, res) => {
   const { email, password } = req.body;
 
   // Type + format guard — rejects objects, arrays, and invalid email strings
@@ -42,7 +42,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Same email validation fix applies to /register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter , async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || typeof username !== 'string' || username.trim().length < 2 || username.trim().length > 50) {
