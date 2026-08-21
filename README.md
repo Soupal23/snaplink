@@ -88,6 +88,13 @@ flowchart TD
 ## Security, Concurrency & Resilience Hardening
 SnapLink has been hardened through a comprehensive security and concurrency audit to enforce enterprise-grade security standards and thread-safe data operations.
 
+### Authentication & Authorization Hardening
+* **NoSQL Injection Defense:** All user input parameters (including email and username) undergo strict type verification and `validator.isEmail()` sanitization prior to Mongoose query execution, neutralizing operator injection vectors (e.g., `{ "$gt": "" }`).
+* **Constant-Time Password Verification:** Enforced constant-time execution paths on `/api/auth/login` using dummy password hashes when queried emails do not exist, eliminating side-channel response-time differential attacks used for email enumeration.
+* **Brute-Force Rate Limiting:** Implemented dedicated `authLimiter` middleware restricting login and registration attempts to a strict limit (10 attempts per 15 minutes per IP), protecting accounts against credential-stuffing attacks.
+* **JWT Expiration & Stale Session Eviction:** Integrated `jwt-decode` into the React `AuthProvider` context. Expired or malformed JWT tokens stored in `localStorage` are automatically evicted on application initialization, preventing silent `401 Unauthorized` dashboard rendering states.
+* **Resource Access Ownership Controls:** Secured analytics endpoints (`/api/url/analytics/:code`) with JWT authentication and strict link-ownership checks, ensuring users can only access click analytics for links they created.
+
 ##  API Overview & Documentation
 
 The SnapLink REST API manages user authentication, URL shortening, real-time analytics collection, and redirection.
