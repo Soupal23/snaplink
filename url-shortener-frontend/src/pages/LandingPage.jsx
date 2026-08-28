@@ -78,9 +78,9 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <main style={styles.heroSection}>
-        <div style={styles.badge} className="hero-title">
+        {/* <div style={styles.badge} className="hero-title">
           🚀 Next-Gen URL Management & Analytics
-        </div>
+        </div> */}
 
         <h1 style={styles.heroHeading} className="hero-title">
           Shorten Links. <span style={styles.gradientText}>Track Impact.</span> Scale Reach.
