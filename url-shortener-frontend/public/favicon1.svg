@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+
+    <!-- Icon Core Gradient (Electric Cyan to Indigo) -->
+    <linearGradient id="snapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+
+    <!-- Drop Shadow / Glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#38bdf8" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- App Icon Background Container -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" stroke="#334155" stroke-width="6"/>
+
+  <g filter="url(#glow)" stroke="url(#snapGrad)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Bottom Left Chain Loop -->
+    <path d="M220 292 L172 340 A60 60 0 0 1 87 255 L135 207 A60 60 0 0 1 220 207" />
+    
+    <!-- Top Right Chain Loop -->
+    <path d="M292 220 L340 172 A60 60 0 0 1 425 257 L377 305 A60 60 0 0 1 292 305" />
+    
+    <!-- Dynamic Lightning / Snap Link Center Bolt -->
+    <path d="M280 180 L220 270 L292 270 L232 340" fill="url(#snapGrad)" stroke-width="8" stroke="url(#snapGrad)"/>
+  </g>
+</svg>
