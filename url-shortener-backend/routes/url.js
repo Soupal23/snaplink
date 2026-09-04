@@ -13,6 +13,10 @@ const { shortenLimiter, apiLimiter } = require('../middleware/rateLimiter');
 // Import Auth Middleware
 const { auth, optionalAuth } = require('../middleware/auth');
 
+// Import Redis & Cache Telemetry utilities
+const { safeDel } = require('../config/redis');
+const { getCacheStats, resetCacheStats } = require('../utils/cacheStats');
+
 // =======================================================
 // POST /api/url/shorten (Supports Custom Slugs, Security, TTL/Click Limits & User Association)
 // =======================================================
@@ -224,6 +228,32 @@ router.get(['/stats/:code', '/analytics/:code'], apiLimiter, auth , async (req, 
 });
 
 // =======================================================
+// GET /api/url/cache-stats (Cache Telemetry Metrics - Authenticated)
+// =======================================================
+router.get('/cache-stats', apiLimiter, auth, async (req, res) => {
+  try {
+    const stats = await getCacheStats();
+    return res.json(stats);
+  } catch (err) {
+    console.error('Cache stats error:', err.message);
+    return res.status(500).json({ message: 'Server error retrieving cache stats' });
+  }
+});
+
+// =======================================================
+// POST /api/url/cache-stats/reset (Reset Telemetry Metrics - Authenticated)
+// =======================================================
+router.post('/cache-stats/reset', apiLimiter, auth, async (req, res) => {
+  try {
+    const result = await resetCacheStats();
+    return res.json(result);
+  } catch (err) {
+    console.error('Reset cache stats error:', err.message);
+    return res.status(500).json({ message: 'Server error resetting cache stats' });
+  }
+});
+
+// =======================================================
 // DELETE /api/url/:id (Delete User's Own Link)
 // =======================================================
 
@@ -241,6 +271,12 @@ router.delete('/:id', apiLimiter, auth, async (req, res) => {
       if (!exists) return res.status(404).json({ message: 'URL not found' });
       return res.status(403).json({ message: 'Forbidden: You can only delete links that you created.' });
     }
+
+    // Atomically evict cached link and click counter from Redis
+    if (deleted.urlCode) {
+      await safeDel([`url:${deleted.urlCode}`, `clicks:${deleted.urlCode}`]);
+    }
+
     return res.json({ message: 'Short link deleted successfully.', deletedId: req.params.id });
   } catch (err) {
     console.error('Delete URL error:', err.message);
