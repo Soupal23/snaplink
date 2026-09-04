@@ -14,6 +14,22 @@ const app = express();
 // 1. TRUST PROXY FOR RENDER (Fixes express-rate-limit IP detection on cloud hosts)
 app.set('trust proxy', 1);
 
+// Measure internal server execution time (independent of internet RTT)
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  const originalWriteHead = res.writeHead;
+
+  res.writeHead = function (...args) {
+    const end = process.hrtime.bigint();
+    const durationMs = (Number(end - start) / 1e6).toFixed(2);
+    res.setHeader('X-Response-Time', `${durationMs}ms`);
+    res.setHeader('Server-Timing', `total;dur=${durationMs};desc="Total Server Time"`);
+    return originalWriteHead.apply(this, args);
+  };
+
+  next();
+});
+
 // --- CORS CONFIGURATION FOR PRODUCTION & LOCAL DEV ---
 const allowedOrigins = [
   'http://localhost:5173', // Vite local server
@@ -30,7 +46,8 @@ app.use(cors({
       callback(new Error('Blocked by CORS policy'));
     }
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['X-Response-Time', 'Server-Timing']
 }));
 // ---------------------------------------------------
 
