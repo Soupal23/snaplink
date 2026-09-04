@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "cache-stats": "node scripts/cache-stats.js",
     "cache-stats:reset": "node scripts/cache-stats.js --reset",
-    "benchmark": "node scripts/benchmark.js"
+    "benchmark": "node scripts/benchmark.js",
+    "measure": "node scripts/measure-latency.js"
   },
   "keywords": [],
   "author": "",
